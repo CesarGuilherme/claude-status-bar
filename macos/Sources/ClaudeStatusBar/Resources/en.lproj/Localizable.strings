@@ -28,6 +28,9 @@
 "Extra" = "Extra";
 "active" = "active";
 "Sign in with Claude" = "Sign in with Claude";
+"Waiting for you to authorize in the browser…" = "Waiting for you to authorize in the browser…";
+"Paste a code instead" = "Paste a code instead";
+"Sign-in didn't finish. Try again." = "Sign-in didn't finish. Try again.";
 "Sign out" = "Sign out";
 "Click opens the folder. ⌥-click opens it in the terminal." = "Click opens the folder. ⌥-click opens it in the terminal.";
 "working · %@" = "working · %@";

@@ -275,6 +275,53 @@ struct SessionTests {
     }
 }
 
+/// Stops URLSession from following the loopback's redirect to the real success page.
+private final class NoRedirect: NSObject, URLSessionTaskDelegate {
+    func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
+                    newRequest request: URLRequest) async -> URLRequest? { nil }
+}
+
+struct SignInTests {
+    @Test func browserComesBackToTheLoopbackWithTheCode() async throws {
+        let receiver = try OAuthLoopback()
+        let port = try await receiver.start()
+        #expect(port > 0)
+        let session = URLSession(configuration: .ephemeral, delegate: NoRedirect(), delegateQueue: nil)
+        // Something else asking first (a favicon) is not the callback.
+        let (_, stray) = try await session.data(from: URL(string: "http://localhost:\(port)/favicon.ico")!)
+        #expect((stray as? HTTPURLResponse)?.statusCode == 404)
+        let (_, response) = try await session.data(from: URL(string: "\(OAuthLoopback.redirectURI(port: port))?code=abc123&state=xyz")!)
+        let http = try #require(response as? HTTPURLResponse)
+        #expect(http.statusCode == 302)
+        #expect(http.value(forHTTPHeaderField: "Location") == OAuthLoopback.successURL)
+        let callback = try await receiver.callback(timeout: 5)
+        #expect(callback == OAuthLoopback.Callback(code: "abc123", state: "xyz"))
+    }
+
+    @Test func refusalAndCancelEndTheWait() async throws {
+        if case .failure(let error)? = OAuthLoopback.parse(requestLine: "GET /callback?error=access_denied HTTP/1.1") {
+            #expect(error as? UsageError == .oauth("access_denied"))
+        } else {
+            Issue.record("error answer not read")
+        }
+        #expect(OAuthLoopback.parse(requestLine: "GET /other?code=a&state=b HTTP/1.1") == nil)
+        let receiver = try OAuthLoopback()
+        _ = try await receiver.start()
+        receiver.cancel()
+        await #expect(throws: CancellationError.self) { try await receiver.callback(timeout: 5) }
+    }
+
+    @Test func authorizeLinkAndExchangeUseTheSameRedirect() async throws {
+        let pending = OAuthFlow.begin(redirectURI: "http://localhost:4242/callback")
+        let items = URLComponents(url: pending.url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        #expect(items.first { $0.name == "redirect_uri" }?.value == "http://localhost:4242/callback")
+        #expect(items.first { $0.name == "state" }?.value == pending.state)
+        await #expect(throws: UsageError.oauth("state")) {
+            try await OAuthFlow.exchange(code: "c", state: "not-ours", pending: pending)
+        }
+    }
+}
+
 struct CredentialTests {
     @Test func parsesClaudeCodeShapeWithoutRefreshingIt() throws {
         let json = """
@@ -467,6 +514,8 @@ struct PopoverSmokeTests {
         #expect(panel.frame.size == StatusBarController.panelSize)
         // Transparent windows shadow each glass card into a dark outline.
         #expect(!panel.hasShadow)
+        // The sign-in code field needs a panel that can take keyboard focus.
+        #expect(panel.canBecomeKey)
     }
 
     @Test func everyLanguageHasEveryKeyWithTheSameArguments() throws {

@@ -260,7 +260,20 @@ struct PopoverView: View {
 
     @ViewBuilder
     private var signIn: some View {
-        if model.awaitingCode {
+        if model.awaitingBrowser {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text(L10n.tr("Waiting for you to authorize in the browser…"))
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Button(L10n.tr("Paste a code instead")) { model.beginManualSignIn() }
+                    .buttonStyle(.link)
+                    .font(.caption)
+            }
+        } else if model.awaitingCode {
             HStack {
                 TextField("code#state", text: $model.oauthCode)
                     .textFieldStyle(.roundedBorder)

@@ -15,6 +15,8 @@ final class AppModel {
     var pollingMinutes: Int = 5
     var authSource: OAuthCredentials.Source?
     var awaitingCode = false
+    /// The browser is open on the authorize page and the app waits for it to come back.
+    var awaitingBrowser = false
     var oauthCode = ""
     var busyAuth = false
     var opensAtLogin = false
@@ -24,6 +26,7 @@ final class AppModel {
 
     private var transcripts: [String: TranscriptState] = [:]
     private var pendingOAuth: OAuthFlow.Pending?
+    private var loopback: OAuthLoopback?
     private var loopsStarted = false
     private var sessionLoop: Task<Void, Never>?
     private var usageLoop: Task<Void, Never>?
@@ -166,9 +169,53 @@ final class AppModel {
         }
     }
 
+    /// Signs in the way Claude Code does: the browser comes back to a local
+    /// address after "Authorize", so there is nothing to copy. If the local
+    /// server can't start, falls back to pasting the code.
     func beginSignIn() {
-        let pending = OAuthFlow.begin()
+        status = nil
+        busyAuth = true
+        Task { await signInThroughBrowser() }
+    }
+
+    private func signInThroughBrowser() async {
+        defer { busyAuth = false }
+        let receiver: OAuthLoopback
+        let port: UInt16
+        do {
+            receiver = try OAuthLoopback()
+            port = try await receiver.start()
+        } catch {
+            beginManualSignIn()
+            return
+        }
+        loopback = receiver
+        let pending = OAuthFlow.begin(redirectURI: OAuthLoopback.redirectURI(port: port))
+        awaitingBrowser = true
+        NSWorkspace.shared.open(pending.url)
+        defer {
+            awaitingBrowser = false
+            if loopback === receiver { loopback = nil }
+        }
+        do {
+            let callback = try await receiver.callback(timeout: 300)
+            let credentials = try await OAuthFlow.exchange(code: callback.code, state: callback.state, pending: pending)
+            try CredentialStore.saveApp(credentials)
+            await refreshUsage()
+        } catch is CancellationError {
+            // The user chose to paste a code instead.
+        } catch {
+            status = L10n.tr("Sign-in didn't finish. Try again.")
+        }
+    }
+
+    /// The old way, kept as a fallback: the browser shows `code#state` to paste.
+    func beginManualSignIn() {
+        loopback?.cancel()
+        loopback = nil
+        let pending = OAuthFlow.begin(redirectURI: OAuthFlow.manualRedirectURI)
         pendingOAuth = pending
+        awaitingBrowser = false
         awaitingCode = true
         status = nil
         NSWorkspace.shared.open(pending.url)

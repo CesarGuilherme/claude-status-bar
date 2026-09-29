@@ -56,16 +56,19 @@ enum UsageClient {
 
 enum OAuthFlow {
     static let authorize = URL(string: "https://claude.ai/oauth/authorize")!
-    static let redirectURI = "https://platform.claude.com/oauth/code/callback"
+    /// The page that shows `code#state` for pasting, when the automatic
+    /// return to `OAuthLoopback` can't be used.
+    static let manualRedirectURI = "https://platform.claude.com/oauth/code/callback"
     static let scopes = ["user:profile", "user:inference"]
 
     struct Pending: Sendable {
         var verifier: String
         var state: String
+        var redirectURI: String
         var url: URL
     }
 
-    static func begin() -> Pending {
+    static func begin(redirectURI: String) -> Pending {
         let verifier = randomVerifier()
         let challenge = Data(SHA256.hash(data: Data(verifier.utf8))).base64URLEncoded()
         let state = randomVerifier()
@@ -80,7 +83,7 @@ enum OAuthFlow {
             URLQueryItem(name: "code_challenge_method", value: "S256"),
             URLQueryItem(name: "state", value: state),
         ]
-        return Pending(verifier: verifier, state: state, url: parts.url!)
+        return Pending(verifier: verifier, state: state, redirectURI: redirectURI, url: parts.url!)
     }
 
     static func exchange(rawCode: String, pending: Pending, session: URLSession = .shared) async throws -> OAuthCredentials {
@@ -88,15 +91,19 @@ enum OAuthFlow {
         guard let code = parts.first.map(String.init), !code.isEmpty else {
             throw UsageError.oauth("código vazio")
         }
-        guard parts.count == 2, String(parts[1]) == pending.state else {
-            throw UsageError.oauth("state")
-        }
+        guard parts.count == 2 else { throw UsageError.oauth("state") }
+        return try await exchange(code: code, state: String(parts[1]), pending: pending, session: session)
+    }
+
+    /// The state must be the one this sign-in sent, or the code is not ours.
+    static func exchange(code: String, state: String, pending: Pending, session: URLSession = .shared) async throws -> OAuthCredentials {
+        guard state == pending.state else { throw UsageError.oauth("state") }
         let body: [String: String] = [
             "grant_type": "authorization_code",
             "code": code,
             "state": pending.state,
             "client_id": UsageClient.clientID,
-            "redirect_uri": redirectURI,
+            "redirect_uri": pending.redirectURI,
             "code_verifier": pending.verifier,
         ]
         return try await tokenRequest(body, session: session, fallbackRefresh: nil, scopes: scopes)

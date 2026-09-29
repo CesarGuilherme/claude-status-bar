@@ -155,7 +155,7 @@ final class StatusBarController: NSObject, NSApplicationDelegate {
     static func makePanel(model: AppModel) -> NSPanel {
         let host = NSHostingView(rootView: PopoverView(model: model))
         host.sizingOptions = []
-        let panel = NSPanel(
+        let panel = KeyablePanel(
             contentRect: NSRect(origin: .zero, size: panelSize),
             styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView],
             backing: .buffered,
@@ -211,6 +211,27 @@ private enum Trace {
         handle.seekToEndOfFile()
         handle.write(data)
         try? handle.close()
+    }
+}
+
+/// A borderless panel can't become key by default, so the sign-in code field
+/// took no typing or paste. The app has no Edit menu either (it is a menu bar
+/// accessory), so the standard edit shortcuts are routed here.
+final class KeyablePanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        let action: Selector? = switch (event.modifierFlags.intersection(.deviceIndependentFlagsMask), event.charactersIgnoringModifiers) {
+        case (.command, "x"): #selector(NSText.cut(_:))
+        case (.command, "c"): #selector(NSText.copy(_:))
+        case (.command, "v"): #selector(NSText.paste(_:))
+        case (.command, "a"): #selector(NSText.selectAll(_:))
+        case (.command, "z"): Selector(("undo:"))
+        case ([.command, .shift], "z"), ([.command, .shift], "Z"): Selector(("redo:"))
+        default: nil
+        }
+        if let action, NSApp.sendAction(action, to: nil, from: self) { return true }
+        return super.performKeyEquivalent(with: event)
     }
 }
 

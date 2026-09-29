@@ -28,6 +28,9 @@
 "Extra" = "Extra";
 "active" = "ativo";
 "Sign in with Claude" = "Entrar com Claude";
+"Waiting for you to authorize in the browser…" = "Aguardando você autorizar no navegador…";
+"Paste a code instead" = "Colar um código";
+"Sign-in didn't finish. Try again." = "O login não terminou. Tenta de novo.";
 "Sign out" = "Sair";
 "Click opens the folder. ⌥-click opens it in the terminal." = "Clique abre a pasta. ⌥-clique abre no terminal.";
 "working · %@" = "trabalhando · %@";

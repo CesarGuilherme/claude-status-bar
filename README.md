@@ -43,7 +43,7 @@ Everything is read locally except the quota:
 | `open.er-api.com` | USD exchange rates, downloaded at most once a day and cached in `~/Library/Caches/com.cesar.claude-status-bar/` |
 | `~/.claude/.usd_brl` | USD → BRL rate the terminal statusline caches; used first for reais so both show the same amount |
 
-For the quota, the app uses its own sign-in (browser OAuth, you paste the `code#state`) or reads Claude Code's token from the Keychain item `Claude Code-credentials`. It only reads that item and never refreshes it, so Claude Code stays logged in.
+For the quota, the app uses its own sign-in or reads Claude Code's token from the Keychain item `Claude Code-credentials`. Signing in works like Claude Code's own login: **Sign in with Claude** opens the browser, you click **Authorize**, and the browser hands the login back to the app through a one-time local address (`http://localhost:<port>/callback`, reachable only from your Mac), with nothing to copy. If that can't work, **Paste a code instead** shows a `code#state` to paste. It only reads that item and never refreshes it, so Claude Code stays logged in.
 
 ## Requirements
 
