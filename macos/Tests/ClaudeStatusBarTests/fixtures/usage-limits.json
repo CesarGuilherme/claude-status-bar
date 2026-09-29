@@ -1,0 +1,28 @@
+{
+  "five_hour": {"utilization": 42.5, "resets_at": "2026-09-29T18:00:00Z"},
+  "seven_day": {"utilization": 18, "resets_at": "2026-10-06T00:00:00Z"},
+  "seven_day_opus": {"utilization": 91, "resets_at": "2026-10-06T00:00:00Z"},
+  "seven_day_sonnet": {"utilization": 10, "resets_at": "2026-10-06T00:00:00Z"},
+  "extra_usage": {"is_enabled": true, "utilization": 25, "used_credits": 1240, "monthly_limit": 5000},
+  "limits": [
+    {
+      "kind": "weekly_scoped",
+      "group": "default",
+      "percent": 88,
+      "resets_at": "2026-10-06T00:00:00Z",
+      "scope": {"model": {"display_name": "Opus"}, "surface": {"display_name": ""}}
+    },
+    {
+      "kind": "weekly_scoped",
+      "percent": 12,
+      "resets_at": 1791244800,
+      "scope": {"model": {"display_name": "Sonnet"}}
+    },
+    {"kind": "weekly_scoped", "percent": "nope"},
+    {
+      "kind": "other",
+      "percent": 99,
+      "scope": {"model": {"display_name": "Ignored"}}
+    }
+  ]
+}
