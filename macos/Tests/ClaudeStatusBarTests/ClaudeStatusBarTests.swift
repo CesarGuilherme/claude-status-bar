@@ -59,19 +59,23 @@ struct ModelMatchTests {
         }
         #expect(ModelMatch.hottestLivePercent(ModelMatch.pinLive(rows, liveModelIDs: ["claude-opus-5-5"])) == 90)
     }
-
-    @Test func grokTicksDoNotBecomeReais() {
-        #expect(GrokCost.usd(ticks: 36_304_880_400) == nil)
-    }
-
     @Test func moneyUsesCachedRateAndBrazilianReais() {
         #expect(Money.rate(contents: nil) == 5.40)
         #expect(Money.rate(contents: " 5.71 \n") == 5.71)
         #expect(Money.rate(contents: "nope") == 5.40)
-        let label = Money.brl(usd: 2, rate: 5.40)
+        let brazil = Locale(identifier: "pt_BR")
+        let label = Money.cost(usd: 2, rate: 5.40, locale: brazil)
         #expect(label.contains("10,80"))
         #expect(label.contains("R$"))
-        #expect(Money.tokens(12_926_641) == "12,9 mi")
+        #expect(Money.tokens(12_926_641, locale: brazil) == "12,9\u{a0}mi")
+    }
+
+    @Test func outsideBrazilCostsStayInDollars() {
+        let us = Locale(identifier: "en_US")
+        #expect(Money.cost(usd: 2, rate: 5.40, locale: us) == "$2.00")
+        #expect(Money.cost(usd: 2, rate: 5.40, locale: Locale(identifier: "pt_PT")).contains("US$"))
+        #expect(Money.tokens(7_033_931_207, locale: us) == "7.0B")
+        #expect(Money.tokens(19_700, locale: us) == "19.7K")
     }
 
     @Test func resetClockUsesTheGivenTimeZone() {
@@ -103,7 +107,7 @@ struct SessionTests {
             openJSONL: [],
             envModel: "opusplan"
         )
-        let rows = SessionLogic.sessions(processes: [process], costs: []) { _ in nil }
+        let rows = SessionLogic.sessions(processes: [process], costs: [])
         #expect(rows.count == 1)
         #expect(rows[0].harness == .claude)
         #expect(rows[0].model == "opusplan")
@@ -114,7 +118,7 @@ struct SessionTests {
     @Test func settingsModelBeatsGenericEnvBest() {
         let command = #"/Xcode/CodingAssistant/claude/claude --settings {"env":{"ANTHROPIC_MODEL":"opusplan"}}"#
         let process = ProcessSnapshot(pid: 4, elapsed: "01:00", command: command, cwd: "/work/app", openJSONL: [], envModel: "best")
-        let rows = SessionLogic.sessions(processes: [process], costs: []) { _ in nil }
+        let rows = SessionLogic.sessions(processes: [process], costs: [])
         #expect(rows[0].harness == .xcode)
         #expect(rows[0].model == "opusplan")
     }
@@ -154,7 +158,7 @@ struct SessionTests {
                 timestamp: event.timestamp
             )
         }
-        let rows = SessionLogic.sessions(processes: [withID], costs: tagged) { _ in nil }
+        let rows = SessionLogic.sessions(processes: [withID], costs: tagged)
         #expect(rows[0].model == "claude-opus-5-5")
         #expect(rows[0].costUSD == 2.5)
     }
@@ -218,102 +222,37 @@ struct SessionTests {
     }
 
     @Test func processLineParsesPidElapsedAndTheRest() {
-        let parsed = SessionLogic.parseProcessLine("  24237 05:33 grok")
+        let parsed = SessionLogic.parseProcessLine("  24237 05:33 claude")
         #expect(parsed?.pid == 24237)
         #expect(parsed?.elapsed == "05:33")
-        #expect(parsed?.command == "grok")
+        #expect(parsed?.command == "claude")
         let long = SessionLogic.parseProcessLine("20433 1-02:03:04 /usr/bin/claude --resume abc")
         #expect(long?.elapsed == "1-02:03:04")
         #expect(long?.command == "/usr/bin/claude --resume abc")
     }
-
-    @Test func grokSessionCarriesModelAndTokens() {
-        let process = ProcessSnapshot(
-            pid: 9,
-            elapsed: "04:00",
-            command: "grok",
-            cwd: "/Volumes/SSD_CESAR/Developer/claude_status_bar",
-            openJSONL: [],
-            envModel: nil
-        )
-        let snap = GrokSnapshot(sessionID: "abc", model: "grok-4.7", tokens: 12_926_641)
-        let rows = SessionLogic.sessions(processes: [process], costs: []) { cwd in
-            cwd.hasSuffix("claude_status_bar") ? snap : nil
-        }
-        #expect(rows[0].harness == .grok)
-        #expect(rows[0].model == "grok-4.7")
-        #expect(rows[0].tokens == 12_926_641)
-        #expect(rows[0].project == "claude_status_bar")
-        #expect(rows[0].costUSD == nil)
-    }
-
     @Test func rollsUpOpenSessionsByModel() {
         let sessions = [
             LiveSession(id: "1", harness: .claude, usageKey: "a", model: "claude-opus-5-5", project: "a", elapsed: "1", costUSD: 1, tokens: nil),
             LiveSession(id: "2", harness: .xcode, usageKey: "a", model: "claude-opus-5-5", project: "a", elapsed: "1", costUSD: 1, tokens: nil),
-            LiveSession(id: "3", harness: .grok, usageKey: "g", model: "grok-4.7", project: "b", elapsed: "1", costUSD: nil, tokens: 1000),
+            LiveSession(id: "3", harness: .claude, usageKey: "s", model: "claude-sonnet-5", project: "b", elapsed: "1", costUSD: nil, tokens: 1000),
         ]
         let rows = ModelRollup.make(sessions)
-        #expect(rows.map(\.model) == ["claude-opus-5-5", "grok-4.7"])
+        #expect(rows.map(\.model) == ["claude-opus-5-5", "claude-sonnet-5"])
         #expect(rows[0].sessions == 2)
         #expect(rows[0].costUSD == 1)
         #expect(rows[1].tokens == 1000)
     }
 
-    @Test func xcodeStaysOnTheClaudeTab() {
-        let sessions = [
-            LiveSession(id: "1", harness: .xcode, usageKey: "x", model: "opusplan", project: "a", elapsed: "1", costUSD: nil, tokens: nil),
-            LiveSession(id: "2", harness: .claude, usageKey: "c", model: "claude-opus-5-5", project: "b", elapsed: "1", costUSD: 1, tokens: nil),
-            LiveSession(id: "3", harness: .grok, usageKey: "g", model: "grok-4.7", project: "c", elapsed: "1", costUSD: nil, tokens: 10),
-        ]
-        #expect(sessions.on(.claude).map(\.harness) == [.xcode, .claude])
-        #expect(sessions.on(.grok).map(\.harness) == [.grok])
-        #expect(OpenTotals.make(sessions.on(.claude)).claudeUSD == 1)
-        #expect(OpenTotals.make(sessions.on(.claude)).grokTokens == 0)
-        #expect(OpenTotals.make(sessions.on(.grok)).grokTokens == 10)
-        #expect(OpenTotals.make(sessions.on(.grok)).sessions == 1)
-    }
-
-    @Test func totalsSumClaudeOnceAndGrokTokens() {
+    @Test func totalsCountASessionSharedWithXcodeOnce() {
         let sessions = [
             LiveSession(id: "1", harness: .claude, usageKey: "same", model: "claude-opus-5-5", project: "a", elapsed: "1", costUSD: 1.5, tokens: nil),
             LiveSession(id: "2", harness: .xcode, usageKey: "same", model: "claude-opus-5-5", project: "a", elapsed: "1", costUSD: 1.5, tokens: nil),
-            LiveSession(id: "3", harness: .grok, usageKey: "g", model: "grok-4.7", project: "b", elapsed: "1", costUSD: nil, tokens: 1000),
+            LiveSession(id: "3", harness: .claude, usageKey: "other", model: "claude-sonnet-5", project: "b", elapsed: "1", costUSD: 0.5, tokens: nil),
         ]
         let totals = OpenTotals.make(sessions)
         #expect(totals.sessions == 3)
-        #expect(totals.claudeUSD == 1.5)
-        #expect(totals.grokTokens == 1000)
-    }
-
-    @Test func grokPathMatchesTheOnDiskEncoding() {
-        #expect(GrokPath.encode("/Volumes/SSD_CESAR/Developer/claude_status_bar") == "%2FVolumes%2FSSD_CESAR%2FDeveloper%2Fclaude_status_bar")
-        #expect(GrokPath.encode("/Volumes/SSD_CESAR/Developer/Diario da Cefaleia") == "%2FVolumes%2FSSD_CESAR%2FDeveloper%2FDiario%20da%20Cefaleia")
-    }
-
-    @Test func readsTheNewestGrokSessionForThatCwd() throws {
-        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
-        defer { try? FileManager.default.removeItem(at: root) }
-        let cwd = "/tmp/proj"
-        let base = root.appendingPathComponent(GrokPath.encode(cwd), isDirectory: true)
-        let older = base.appendingPathComponent("old")
-        let newer = base.appendingPathComponent("new")
-        try FileManager.default.createDirectory(at: older, withIntermediateDirectories: true)
-        try FileManager.default.createDirectory(at: newer, withIntermediateDirectories: true)
-        try """
-        {"current_model_id":"grok-old","last_active_at":"2026-09-01T00:00:00Z"}
-        """.write(to: older.appendingPathComponent("summary.json"), atomically: true, encoding: .utf8)
-        try """
-        {"current_model_id":"grok-4.7","last_active_at":"2026-09-29T12:00:00Z"}
-        """.write(to: newer.appendingPathComponent("summary.json"), atomically: true, encoding: .utf8)
-        try """
-        {"session":{"totalTokens":100,"primaryModelId":"grok-4.7-build"}}
-        """.write(to: newer.appendingPathComponent("usage.json"), atomically: true, encoding: .utf8)
-
-        let snap = GrokSessions.load(sessionsRoot: root, cwd: cwd)
-        #expect(snap?.sessionID == "new")
-        #expect(snap?.model == "grok-4.7")
-        #expect(snap?.tokens == 100)
+        #expect(totals.claudeUSD == 2.0)
+        #expect(SessionLogic.classify("/Users/me/.grok/bin/grok") == nil)
     }
 }
 
@@ -336,13 +275,13 @@ struct PopoverSmokeTests {
     @Test func popoverLaysOutWithSessionsAndTotals() {
         let model = AppModel(startLoops: false)
         model.sessions = [
-            LiveSession(id: "1", harness: .grok, usageKey: "g", model: "grok-4.7", project: "claude_status_bar", elapsed: "05:33", costUSD: nil, tokens: 1000),
+            LiveSession(id: "1", harness: .claude, usageKey: "s", model: "claude-opus-5-5", project: "claude_status_bar", elapsed: "05:33", costUSD: 1.25, tokens: 1000, context: 40),
         ]
         model.usage = UsageResponse(
             fiveHour: UsageBucket(utilization: 42, resetsAt: "2026-09-29T18:00:00Z"),
             sevenDay: UsageBucket(utilization: 18, resetsAt: nil)
         )
-        model.modelRows = ModelMatch.pinLive(model.usage?.perModelWeekly() ?? [], liveModelIDs: ["grok-4.7"])
+        model.modelRows = ModelMatch.pinLive(model.usage?.perModelWeekly() ?? [], liveModelIDs: ["claude-opus-5-5"])
         let host = NSHostingView(rootView: PopoverView(model: model))
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 360, height: 520),
@@ -355,7 +294,7 @@ struct PopoverSmokeTests {
         host.layoutSubtreeIfNeeded()
         #expect(host.bounds.width == 360)
         #expect(model.totals.sessions == 1)
-        #expect(model.totals.grokTokens == 1000)
+        #expect(model.totals.claudeUSD == 1.25)
     }
 
     @Test func loginAgentPointsAtTheBinaryAndRoundTrips() throws {
@@ -496,32 +435,8 @@ struct PopoverSmokeTests {
         #expect(ModelMatch.displayName("claude-sonnet-5") == "Sonnet 5")
         #expect(ModelMatch.displayName("claude-haiku-4-5-20251001") == "Haiku 4.5")
         #expect(ModelMatch.displayName("grok-4.7-build") == "grok-4.7-build")
-        #expect(Money.tokens(7_033_931_207) == "7,0 bi")
+        #expect(Money.tokens(7_033_931_207, locale: Locale(identifier: "pt_BR")) == "7,0\u{a0}bi")
     }
-
-    @Test func grokTurnsBucketByDayWithoutSummingTwice() throws {
-        let json = """
-        {"sessionId":"g1","turns":[
-          {"endedAt":"2026-09-22T13:14:34.144758+00:00","totalTokens":10,"inputTokens":6,"outputTokens":4,"cachedReadTokens":0,"cacheCreationTokens":0,"primaryModelId":"grok-4.7","costUsdTicks":99},
-          {"endedAt":"2026-09-22T18:00:00.000000+00:00","totalTokens":5,"inputTokens":1,"outputTokens":1,"cachedReadTokens":2,"cacheCreationTokens":1,"primaryModelId":"grok-4.7","costUsdTicks":50}
-        ]}
-        """.data(using: .utf8)!
-        let events = HistoryLog.parseGrok(json)
-        #expect(events.count == 2)
-        #expect(events.map(\.tokens) == [10, 5])
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
-        let now = try #require(HistoryLog.parseDate("2026-09-29T00:00:00Z"))
-        let snapshot = HistoryLog.snapshot(events: events, range: .all, now: now, calendar: calendar)
-        #expect(snapshot.totalTokens == 15)
-        #expect(snapshot.sessions == 1)
-        #expect(snapshot.activeDays == 1)
-        #expect(snapshot.spanDays == 1)
-        #expect(snapshot.favoriteModel == "grok-4.7")
-        #expect(snapshot.cacheRead == 2)
-        #expect(snapshot.cacheWrite == 1)
-    }
-
     @Test func panelHostFillsThePanel() throws {
         let model = AppModel(startLoops: false)
         let panel = StatusBarController.makePanel(model: model)
@@ -533,6 +448,37 @@ struct PopoverSmokeTests {
         #expect(panel.frame.size == StatusBarController.panelSize)
         // Transparent windows shadow each glass card into a dark outline.
         #expect(!panel.hasShadow)
+    }
+
+    @Test func everyLanguageHasEveryKeyWithTheSameArguments() throws {
+        func table(_ language: String) throws -> [String: String] {
+            let url = try #require(L10n.bundle.url(forResource: "Localizable", withExtension: "strings", subdirectory: nil, localization: language))
+            return try #require(NSDictionary(contentsOf: url) as? [String: String])
+        }
+        func specifiers(_ text: String) -> [String] {
+            let regex = try! NSRegularExpression(pattern: #"%(\d+\$)?[@dfs]"#)
+            return regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
+                .map { String(text[Range($0.range, in: text)!]) }
+                .sorted()
+        }
+        let english = try table("en")
+        #expect(english.count > 60)
+        for language in ["pt-BR", "es", "fr", "de"] {
+            let other = try table(language)
+            #expect(Set(other.keys) == Set(english.keys), "\(language) keys differ")
+            for (key, value) in other {
+                #expect(specifiers(value) == specifiers(key), "\(language): \(key)")
+            }
+        }
+    }
+
+    @Test func textsResolveInEachLanguage() {
+        #expect(L10n.tr("Quit", in: "pt-BR") == "Encerrar")
+        #expect(L10n.tr("Quit", in: "de") == "Beenden")
+        #expect(L10n.tr("%d sessions", in: "fr", 3) == "3 sessions")
+        #expect(L10n.tr("idle %1$@ · %2$@", in: "es", "2 min", "01:00") == "inactiva 2 min · 01:00")
+        #expect(StatsFun.line(input: 90_000, output: 90_000, language: "pt-BR")?.contains("Dom Casmurro") == true)
+        #expect(StatsFun.line(input: 37_000, output: 0, language: "ja")?.contains("A Christmas Carol") == true)
     }
 
     @Test func quitMenuIsThereForAnyone() {

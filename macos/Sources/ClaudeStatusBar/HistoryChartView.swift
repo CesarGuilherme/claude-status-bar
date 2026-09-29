@@ -56,7 +56,7 @@ struct HistorySection: View {
             .font(.caption)
 
             if snapshot.totalTokens == 0 && snapshot.sessions == 0 {
-                Text("Sem histórico neste período.")
+                Text(L10n.tr("No history in this period."))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, minHeight: 80, alignment: .center)
@@ -76,38 +76,38 @@ struct HistorySection: View {
         VStack(alignment: .leading, spacing: 10) {
             heatmap(snapshot)
             HStack(spacing: 4) {
-                Text("Menos")
+                Text(L10n.tr("Less"))
                 ForEach(1..<5, id: \.self) { level in
                     RoundedRectangle(cornerRadius: 2, style: .continuous)
                         .fill(StatsPalette.heat(level))
                         .frame(width: 10, height: 10)
                 }
-                Text("Mais")
+                Text(L10n.tr("More"))
             }
             .font(.caption2)
             .foregroundStyle(.secondary)
 
             Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 5) {
                 GridRow {
-                    stat("Modelo favorito", ModelMatch.displayName(snapshot.favoriteModel), bold: true)
-                    stat("Total de tokens", Money.tokens(snapshot.totalTokens))
+                    stat(L10n.tr("Favorite model"), ModelMatch.displayName(snapshot.favoriteModel), bold: true)
+                    stat(L10n.tr("Total tokens"), Money.tokens(snapshot.totalTokens))
                 }
                 GridRow {
-                    stat("Sessões", "\(snapshot.sessions)")
-                    stat("Sessão mais longa", HistoryLog.duration(snapshot.longestSession))
+                    stat(L10n.tr("Sessions"), "\(snapshot.sessions)")
+                    stat(L10n.tr("Longest session"), HistoryLog.duration(snapshot.longestSession))
                 }
                 GridRow {
-                    stat("Dias ativos", "\(snapshot.activeDays)/\(snapshot.spanDays)")
-                    stat("Maior sequência", "\(snapshot.longestStreak) dias", bold: true)
+                    stat(L10n.tr("Active days"), "\(snapshot.activeDays)/\(snapshot.spanDays)")
+                    stat(L10n.tr("Longest streak"), L10n.tr("%d days", snapshot.longestStreak), bold: true)
                 }
                 GridRow {
-                    stat("Dia mais ativo", snapshot.busiestDay.map(dayText) ?? "—")
-                    stat("Sequência atual", "\(snapshot.currentStreak) dias", bold: true)
+                    stat(L10n.tr("Most active day"), snapshot.busiestDay.map(dayText) ?? "—")
+                    stat(L10n.tr("Current streak"), L10n.tr("%d days", snapshot.currentStreak), bold: true)
                 }
             }
 
             if snapshot.splitKnown {
-                Text("Entrada \(Money.tokens(snapshot.input)) · Saída \(Money.tokens(snapshot.output)) · Cache \(Money.tokens(snapshot.cacheRead)) leitura · \(Money.tokens(snapshot.cacheWrite)) escrita")
+                Text(L10n.tr("Input %1$@ · Output %2$@ · Cache %3$@ read · %4$@ write", Money.tokens(snapshot.input), Money.tokens(snapshot.output), Money.tokens(snapshot.cacheRead), Money.tokens(snapshot.cacheWrite)))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -128,7 +128,8 @@ struct HistorySection: View {
                     VStack(spacing: 3) {
                         Color.clear.frame(width: 22, height: 12)
                         ForEach(0..<7, id: \.self) { row in
-                            Text(row == 0 ? "seg" : row == 2 ? "qua" : row == 4 ? "sex" : "")
+                            // Rows run Monday to Sunday; label Mon, Wed and Fri in the system language.
+                            Text(row % 2 == 0 && row < 6 ? Calendar.current.shortStandaloneWeekdaySymbols[row + 1] : "")
                                 .font(.system(size: 8))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 22, height: 10, alignment: .trailing)
@@ -180,7 +181,7 @@ struct HistorySection: View {
         let picked = hovered.map { Calendar.current.startOfDay(for: $0) }
         let pickedPoints = snapshot.series.filter { $0.day == picked && $0.tokens > 0 }
         return VStack(alignment: .leading, spacing: 10) {
-            Text("Tokens por dia")
+            Text(L10n.tr("Tokens per day"))
                 .font(.caption.weight(.semibold))
             Chart {
                 ForEach(snapshot.series) { point in
@@ -245,10 +246,10 @@ struct HistorySection: View {
                                 .monospacedDigit()
                         }
                         if share.splitKnown {
-                            Text("Entrada \(Money.tokens(share.input)) · Saída \(Money.tokens(share.output))")
-                            Text("Cache \(Money.tokens(share.cacheRead)) leit. · \(Money.tokens(share.cacheWrite)) escr.")
+                            Text(L10n.tr("Input %1$@ · Output %2$@", Money.tokens(share.input), Money.tokens(share.output)))
+                            Text(L10n.tr("Cache %1$@ read · %2$@ write", Money.tokens(share.cacheRead), Money.tokens(share.cacheWrite)))
                         } else {
-                            Text("\(Money.tokens(share.tokens)) tokens")
+                            Text(L10n.tr("%@ tokens", Money.tokens(share.tokens)))
                         }
                     }
                     .font(.caption2)
@@ -262,7 +263,7 @@ struct HistorySection: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(dayText(day)).font(.caption2.weight(.semibold))
             if points.isEmpty {
-                Text("sem uso").font(.caption2).foregroundStyle(.secondary)
+                Text(L10n.tr("no usage")).font(.caption2).foregroundStyle(.secondary)
             }
             ForEach(points) { point in
                 Text("\(ModelMatch.displayName(point.model)): \(Money.tokens(point.tokens))")
@@ -275,7 +276,7 @@ struct HistorySection: View {
     }
 
     private func dayText(_ date: Date) -> String {
-        date.formatted(.dateTime.day().month(.abbreviated).locale(Locale(identifier: "pt_BR")))
+        date.formatted(.dateTime.day().month(.abbreviated))
     }
 }
 
@@ -284,8 +285,8 @@ enum HistoryKind: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .overview: "Visão geral"
-        case .models: "Modelos"
+        case .overview: L10n.tr("Overview")
+        case .models: L10n.tr("Models")
         }
     }
 }
@@ -312,15 +313,22 @@ enum StatsPalette {
     }
 }
 
-/// The `/stats` comparison line, with a Brazilian book.
+/// The `/stats` comparison line, with a well-known book in each language.
 enum StatsFun {
-    /// Dom Casmurro, about 67k words, is roughly 90k tokens.
-    static let bookTokens = 90_000
-    static let book = "Dom Casmurro"
+    /// Rough token counts. A Christmas Carol matches the ratio `/stats` uses.
+    static let books: [String: (title: String, tokens: Int)] = [
+        "en": ("A Christmas Carol", 37_000),
+        "pt": ("Dom Casmurro", 90_000),
+        "es": ("Pedro Páramo", 45_000),
+        "fr": ("Le Petit Prince", 25_000),
+        "de": ("Die Verwandlung", 30_000),
+    ]
 
-    static func line(input: Int, output: Int) -> String? {
-        let times = (input + output) / bookTokens
+    static func line(input: Int, output: Int, language: String = L10n.language) -> String? {
+        let code = String(language.prefix(2))
+        let book = books[code] ?? books["en"]!
+        let times = (input + output) / book.tokens
         guard times >= 1 else { return nil }
-        return "Sua entrada e saída somam ~\(times)× os tokens de \(book)"
+        return L10n.tr("Your input and output add up to ~%1$d× the tokens in %2$@", times, book.title)
     }
 }

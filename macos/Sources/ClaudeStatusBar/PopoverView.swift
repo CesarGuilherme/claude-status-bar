@@ -3,10 +3,9 @@ import SwiftUI
 
 struct PopoverView: View {
     @Bindable var model: AppModel
-    @State private var side: SessionSide = .claude
     @Namespace private var glass
 
-    private var shown: [LiveSession] { model.sessions.on(side) }
+    private var shown: [LiveSession] { model.sessions }
     private var shownTotals: OpenTotals { OpenTotals.make(shown) }
 
     var body: some View {
@@ -30,22 +29,10 @@ struct PopoverView: View {
 
     private var sections: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                ForEach(SessionSide.allCases) { item in
-                    GlassPill(
-                        title: "\(item.title) \(model.sessions.on(item).count)",
-                        selected: side == item
-                    ) {
-                        withAnimation(.snappy) { side = item }
-                    }
-                }
-            }
-
             header.glassCard(id: "header", in: glass)
             sessionsSection.glassCard(id: "sessions", in: glass)
             modelSection.glassCard(id: "models", in: glass)
-            HistorySection(input: side == .claude ? model.claudeHistory : model.grokHistory)
-                .id(side)
+            HistorySection(input: model.claudeHistory)
                 .glassCard(id: "history", in: glass)
             footer
         }
@@ -55,21 +42,7 @@ struct PopoverView: View {
 
     @ViewBuilder
     private var header: some View {
-        if side == .grok {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 2) {
-                    SectionLabel(text: "Tokens abertos")
-                    Text(Money.tokens(shownTotals.grokTokens))
-                        .font(.title2.weight(.semibold))
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                }
-                Spacer()
-                Text("\(shownTotals.sessions) sessões")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-        } else if let usage = model.usage {
+        if let usage = model.usage {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 14) {
                     QuotaRing(
@@ -80,12 +53,12 @@ struct PopoverView: View {
                     QuotaRing(title: "7d", percent: usage.sevenDay?.utilization, caption: nil)
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
-                        SectionLabel(text: "Hoje")
-                        Text(Money.brl(usd: model.todayUSD, rate: model.brlRate))
+                        SectionLabel(text: L10n.tr("Today"))
+                        Text(Money.cost(usd: model.todayUSD, rate: model.brlRate))
                             .font(.title2.weight(.semibold))
                             .monospacedDigit()
                             .contentTransition(.numericText())
-                        Text("abertas \(Money.brl(usd: shownTotals.claudeUSD, rate: model.brlRate))")
+                        Text(L10n.tr("Open sessions %@", Money.cost(usd: shownTotals.claudeUSD, rate: model.brlRate)))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
@@ -96,13 +69,13 @@ struct PopoverView: View {
             .animation(.snappy, value: usage)
         } else {
             VStack(alignment: .leading, spacing: 8) {
-                Text(model.status ?? "Cota da conta ainda sem leitura.")
+                Text(model.status ?? L10n.tr("Account quota not read yet."))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                 HStack {
-                    SectionLabel(text: "Hoje")
+                    SectionLabel(text: L10n.tr("Today"))
                     Spacer()
-                    Text(Money.brl(usd: model.todayUSD, rate: model.brlRate))
+                    Text(Money.cost(usd: model.todayUSD, rate: model.brlRate))
                         .monospacedDigit()
                 }
                 signIn
@@ -115,16 +88,16 @@ struct PopoverView: View {
     private var sessionsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
-                SectionLabel(text: "Ao vivo")
+                SectionLabel(text: L10n.tr("Live"))
                 let working = shown.filter { $0.isWorking() }.count
                 if working > 0 {
-                    Text("\(working) trabalhando")
+                    Text(L10n.tr("%d working", working))
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(Threshold.Level.green.color)
                 }
             }
             if shown.isEmpty {
-                Text("Nenhuma sessão \(side.title) aberta.")
+                Text(L10n.tr("No %@ session open.", "Claude"))
                     .font(.callout)
                     .foregroundStyle(.secondary)
             } else {
@@ -142,14 +115,12 @@ struct PopoverView: View {
 
     private var modelSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            SectionLabel(text: "Por modelo")
-            if side == .grok {
-                localRollup(ModelRollup.make(shown), empty: "Nenhum modelo Grok em uso.")
-            } else if model.modelRows.isEmpty {
+            SectionLabel(text: L10n.tr("By model"))
+            if model.modelRows.isEmpty {
                 localRollup(
                     ModelRollup.make(shown),
-                    empty: "Sem janela semanal por modelo.",
-                    note: shown.isEmpty ? nil : "A conta não separou a cota por modelo. Abaixo é o uso local destas sessões."
+                    empty: L10n.tr("No weekly window per model."),
+                    note: shown.isEmpty ? nil : L10n.tr("The account does not split quota by model. Below is the local usage of these sessions.")
                 )
             } else {
                 ForEach(model.modelRows) { row in
@@ -186,7 +157,7 @@ struct PopoverView: View {
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                     if row.costUSD > 0 {
-                        Text(Money.brl(usd: row.costUSD, rate: model.brlRate))
+                        Text(Money.cost(usd: row.costUSD, rate: model.brlRate))
                             .monospacedDigit()
                     }
                     if row.tokens > 0 {
@@ -210,9 +181,9 @@ struct PopoverView: View {
                     set: { model.setOpensAtLogin($0) }
                 )) {
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("Abrir com o computador")
+                        Text(L10n.tr("Open at Login"))
                             .font(.callout.weight(.semibold))
-                        Text(model.loginNote ?? (model.opensAtLogin ? "Ligado" : "Desligado"))
+                        Text(model.loginNote ?? (model.opensAtLogin ? L10n.tr("On") : L10n.tr("Off")))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
@@ -234,7 +205,7 @@ struct PopoverView: View {
                         .foregroundStyle(.secondary)
                 }
                 if let source = model.authSource {
-                    Text(source == .claudeCode ? "Claude Code" : "login da barra")
+                    Text(source == .claudeCode ? "Claude Code" : L10n.tr("this app's login"))
                         .foregroundStyle(.tertiary)
                 }
                 Spacer()
@@ -242,9 +213,9 @@ struct PopoverView: View {
                     get: { model.pollingMinutes },
                     set: { model.setPolling($0) }
                 )) {
-                    Text("5 min").tag(5)
-                    Text("15 min").tag(15)
-                    Text("30 min").tag(30)
+                    Text(L10n.tr("%d min", 5)).tag(5)
+                    Text(L10n.tr("%d min", 15)).tag(15)
+                    Text(L10n.tr("%d min", 30)).tag(30)
                 }
                 .pickerStyle(.menu)
                 .labelsHidden()
@@ -262,7 +233,7 @@ struct PopoverView: View {
     private func extraRow(_ extra: ExtraUsage?) -> some View {
         if let extra, extra.isEnabled {
             HStack {
-                Text("Extra")
+                Text(L10n.tr("Extra"))
                     .frame(width: 72, alignment: .leading)
                 Text(extraLabel(extra))
                     .monospacedDigit()
@@ -283,7 +254,7 @@ struct PopoverView: View {
             if let percent = extra.utilization {
                 return "\(Int(percent.rounded()))%"
             }
-            return "ativo"
+            return L10n.tr("active")
         }
     }
 
@@ -305,7 +276,7 @@ struct PopoverView: View {
 
     @ViewBuilder
     private var signInButton: some View {
-        let button = Button("Entrar com Claude") { model.beginSignIn() }
+        let button = Button(L10n.tr("Sign in with Claude")) { model.beginSignIn() }
             .disabled(model.busyAuth)
         if #available(macOS 26, *) {
             button.buttonStyle(.glassProminent)
@@ -316,7 +287,7 @@ struct PopoverView: View {
 
     @ViewBuilder
     private var signOutButton: some View {
-        let button = Button("Sair") { model.forgetAppLogin() }
+        let button = Button(L10n.tr("Sign out")) { model.forgetAppLogin() }
         if #available(macOS 26, *) {
             button.buttonStyle(.glass)
         } else {
@@ -339,42 +310,6 @@ struct PopoverView: View {
         .help(StatusMenus.quitTitle)
         .accessibilityLabel(StatusMenus.quitTitle)
         .glassCircle(id: "quit", in: glass)
-    }
-}
-
-/// Tab pill. The selected one is tinted glass, the rest plain glass.
-private struct GlassPill: View {
-    var title: String
-    var selected: Bool
-    var action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.callout.weight(selected ? .semibold : .regular))
-                .foregroundStyle(selected ? Color.white : Color.primary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 7)
-                .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .modifier(PillGlass(selected: selected))
-        .accessibilityAddTraits(selected ? .isSelected : [])
-    }
-}
-
-private struct PillGlass: ViewModifier {
-    var selected: Bool
-
-    func body(content: Content) -> some View {
-        if #available(macOS 26, *) {
-            content.glassEffect(
-                selected ? .regular.tint(StatsPalette.accent.opacity(0.85)).interactive() : .regular.interactive(),
-                in: Capsule()
-            )
-        } else {
-            content.background(Capsule().fill(selected ? AnyShapeStyle(StatsPalette.accent) : AnyShapeStyle(.quaternary)))
-        }
     }
 }
 
@@ -401,7 +336,7 @@ private struct ModuleToggleStyle: ToggleStyle {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityValue(configuration.isOn ? "Ligado" : "Desligado")
+        .accessibilityValue(configuration.isOn ? L10n.tr("On") : L10n.tr("Off"))
     }
 }
 
@@ -432,11 +367,11 @@ private struct SessionCard: View {
                     }
                     Spacer(minLength: 6)
                     if let cost = session.costUSD {
-                        Text(Money.brl(usd: cost, rate: rate))
+                        Text(Money.cost(usd: cost, rate: rate))
                             .font(.callout.monospacedDigit())
                             .contentTransition(.numericText())
                     } else if let tokens = session.tokens {
-                        Text("\(Money.tokens(tokens)) tok")
+                        Text(L10n.tr("%@ tok", Money.tokens(tokens)))
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
                     }
@@ -457,15 +392,15 @@ private struct SessionCard: View {
         }
         .contentShape(Rectangle())
         .onTapGesture { open() }
-        .help(session.cwd == nil ? "" : "Clique abre a pasta. ⌥-clique abre no terminal.")
+        .help(session.cwd == nil ? "" : L10n.tr("Click opens the folder. ⌥-click opens it in the terminal."))
     }
 
     private func activity(working: Bool, now: Date) -> String {
-        if working { return "trabalhando · \(session.elapsed)" }
+        if working { return L10n.tr("working · %@", session.elapsed) }
         if let last = session.lastActivity {
             let minutes = Int(now.timeIntervalSince(last) / 60)
-            let idle = minutes < 1 ? "agora" : minutes < 60 ? "\(minutes) min" : "\(minutes / 60) h"
-            return "ociosa \(idle) · \(session.elapsed)"
+            let idle = minutes < 1 ? L10n.tr("now") : minutes < 60 ? L10n.tr("%d min", minutes) : L10n.tr("%d h", minutes / 60)
+            return L10n.tr("idle %1$@ · %2$@", idle, session.elapsed)
         }
         return session.elapsed
     }
@@ -548,7 +483,7 @@ private struct QuotaRing: View {
         }
         .animation(.snappy, value: percent)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title) \(percent.map { "\(Int($0.rounded())) por cento" } ?? "sem leitura")")
+        .accessibilityLabel(percent.map { L10n.tr("%1$@ %2$d percent", title, Int($0.rounded())) } ?? L10n.tr("%@, no reading", title))
     }
 }
 
@@ -622,9 +557,9 @@ private struct SectionLabel: View {
 }
 
 private extension View {
-    /// Liquid Glass card. The id lets the glass flow between shapes when the
-    /// Claude/Grok tab changes the card's contents.
-    /// Radius and padding follow the Control Center modules.
+    /// Liquid Glass card. The id lets the glass flow between shapes when a
+    /// card's contents change size. Radius and padding follow the Control
+    /// Center modules.
     @ViewBuilder
     func glassCard(
         id: String,

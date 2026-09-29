@@ -1,23 +1,23 @@
 # Claude Status Bar
 
-A macOS menu bar app that shows your Claude (and Grok) usage at a glance: account quota, live sessions, spend in BRL and a history that matches Claude Code's `/stats`. Built with SwiftUI and Liquid Glass.
+A macOS menu bar app that shows your Claude usage at a glance: account quota, live sessions, spend and a history that matches Claude Code's `/stats`. Built with SwiftUI and Liquid Glass.
 
 <p align="center">
   <img src="docs/menubar.png" alt="Menu bar icon with 5h and 7d quota meters" height="52"><br><br>
   <img src="docs/panel.png" alt="The panel: quota rings, live sessions, per-model usage and history" width="352">
 </p>
 
-The interface is in Brazilian Portuguese.
+The interface follows the macOS language: English, Portuguese (Brazil), Spanish, French or German, with English for any other language. Costs show in reais when the system region is Brazil (converted at the cached USD→BRL rate) and in US dollars everywhere else; numbers and dates follow the system format.
 
 ## What it shows
 
 - **Menu bar**: the Claude mark with two meters for the 5-hour and 7-day quota windows. A green dot pulses while a session is working, and the mark turns amber or red as quota runs out (same bands as the terminal statusline: 70% and 90%).
 - **Quota**: 5h and 7d rings with the reset time, per-model weekly limits when the account reports them, and extra usage.
-- **Today**: what you spent today in reais, and what the open sessions cost.
-- **Live sessions**: every running Claude Code, Xcode agent or Grok session, with model, project, context-window use, working or idle state, tokens and cost. Click a session to open its folder; Option-click opens it in the terminal.
+- **Today**: what you spent today, and what the open sessions cost.
+- **Live sessions**: every running Claude Code session, in the terminal or inside Xcode, with model, project, running time, context-window use, working or idle state, tokens and cost. Click a session to open its folder; Option-click opens it in the terminal.
 - **History**, like `/stats`:
-  - *Visão geral*: activity heatmap, favorite model, total tokens, sessions, longest session, active days, streaks and busiest day.
-  - *Modelos*: tokens per day by model, with hover, and each model's share with its input, output and cache split.
+  - *Overview*: activity heatmap, favorite model, total tokens, sessions, longest session, active days, streaks and busiest day.
+  - *Models*: tokens per day by model, with hover, and each model's share with its input, output and cache split.
 - **Open at login** and **Quit** buttons in the panel; right-click the icon for Quit as well.
 
 ## Where the numbers come from
@@ -30,9 +30,8 @@ Everything is read locally except the quota:
 | `~/.claude/stats-cache.json` | History up to its last computed day (the file `/stats` reads) |
 | `~/.claude/projects/**/*.jsonl` | Today's history and live session context, tokens and activity |
 | `~/.claude/metrics/costs.jsonl` | Session cost and today's spend (written by the ECC cost-tracker hook) |
-| `ps` / `lsof` | Which sessions are running |
-| `~/.grok/sessions` | Grok sessions and tokens |
-| `~/.claude/.usd_brl` | USD → BRL rate (fallback 5.40) |
+| `ps` / `lsof` | Which Claude Code sessions are running |
+| `~/.claude/.usd_brl` | USD → BRL rate when the region is Brazil (fallback 5.40) |
 
 For the quota, the app uses its own sign-in (browser OAuth, you paste the `code#state`) or reads Claude Code's token from the Keychain item `Claude Code-credentials`. It only reads that item and never refreshes it, so Claude Code stays logged in.
 

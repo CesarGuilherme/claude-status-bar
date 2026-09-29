@@ -1,0 +1,78 @@
+/* Menu bar */
+"Claude usage" = "Uso de Claude";
+"5h %1$@, 7d %2$@. %3$d live sessions" = "5 h %1$@, 7 d %2$@. %3$d sesiones activas";
+"5 hours %d percent" = "5 horas, %d por ciento";
+"5 hours, no reading" = "5 horas, sin lectura";
+"7 days %d percent" = "7 días, %d por ciento";
+"7 days, no reading" = "7 días, sin lectura";
+"%1$@, %2$@, %3$d live sessions" = "%1$@, %2$@, %3$d sesiones activas";
+"Quit" = "Salir";
+
+/* Panel */
+"Today" = "Hoy";
+"Open sessions %@" = "Sesiones abiertas %@";
+"Account quota not read yet." = "Aún no se ha leído la cuota de la cuenta.";
+"Live" = "En vivo";
+"%d working" = "%d trabajando";
+"No %@ session open." = "No hay ninguna sesión de %@ abierta.";
+"By model" = "Por modelo";
+"No weekly window per model." = "Sin ventana semanal por modelo.";
+"The account does not split quota by model. Below is the local usage of these sessions." = "La cuenta no separa la cuota por modelo. Abajo está el uso local de estas sesiones.";
+"Open at Login" = "Abrir al iniciar sesión";
+"On" = "Activado";
+"Off" = "Desactivado";
+"this app's login" = "sesión de esta app";
+"%d min" = "%d min";
+"%d h" = "%d h";
+"now" = "ahora";
+"Extra" = "Extra";
+"active" = "activo";
+"Sign in with Claude" = "Iniciar sesión con Claude";
+"Sign out" = "Cerrar sesión";
+"Click opens the folder. ⌥-click opens it in the terminal." = "Clic abre la carpeta. ⌥-clic la abre en el terminal.";
+"working · %@" = "trabajando · %@";
+"idle %1$@ · %2$@" = "inactiva %1$@ · %2$@";
+"%@ tok" = "%@ tok";
+"%1$@ %2$d percent" = "%1$@, %2$d por ciento";
+"%@, no reading" = "%@, sin lectura";
+
+/* Account and login */
+"Approve in System Settings › General › Login Items." = "Apruébalo en Ajustes del Sistema › General › Ítems de inicio.";
+"Couldn't change opening at login." = "No se pudo cambiar la apertura al iniciar sesión.";
+"Couldn't find the executable." = "No se encontró el ejecutable.";
+"Takes effect at the next login." = "Se aplicará en el próximo inicio de sesión.";
+"Sign in to see the account quota." = "Inicia sesión para ver la cuota de la cuenta.";
+"Couldn't exchange the code. Paste the whole code#state." = "No se pudo canjear el código. Pega el code#state completo.";
+"This app's login expired." = "La sesión de esta app caducó.";
+"Claude Code's token is no longer valid. Open Claude Code or sign in here." = "El token de Claude Code ya no es válido. Abre Claude Code o inicia sesión aquí.";
+"Login refused. Sign in again." = "Inicio de sesión rechazado. Vuelve a iniciar sesión.";
+"The quota didn't respond (HTTP %d)." = "La cuota no respondió (HTTP %d).";
+"The quota response came in a new format." = "La respuesta de la cuota llegó en un formato nuevo.";
+"No network for the quota." = "Sin red para la cuota.";
+"Couldn't read the quota." = "No se pudo leer la cuota.";
+
+/* History */
+"All" = "Todo";
+"30 days" = "30 días";
+"7 days" = "7 días";
+"Overview" = "Resumen";
+"Models" = "Modelos";
+"No history in this period." = "Sin historial en este periodo.";
+"Less" = "Menos";
+"More" = "Más";
+"Favorite model" = "Modelo favorito";
+"Total tokens" = "Tokens totales";
+"Sessions" = "Sesiones";
+"Longest session" = "Sesión más larga";
+"Active days" = "Días activos";
+"Longest streak" = "Racha más larga";
+"Most active day" = "Día más activo";
+"Current streak" = "Racha actual";
+"%d days" = "%d días";
+"Input %1$@ · Output %2$@ · Cache %3$@ read · %4$@ write" = "Entrada %1$@ · Salida %2$@ · Caché %3$@ lectura · %4$@ escritura";
+"Tokens per day" = "Tokens por día";
+"Input %1$@ · Output %2$@" = "Entrada %1$@ · Salida %2$@";
+"Cache %1$@ read · %2$@ write" = "Caché %1$@ lect. · %2$@ escr.";
+"%@ tokens" = "%@ tokens";
+"no usage" = "sin uso";
+"Your input and output add up to ~%1$d× the tokens in %2$@" = "Tu entrada y salida suman ~%1$d× los tokens de %2$@";

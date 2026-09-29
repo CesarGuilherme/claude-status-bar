@@ -39,17 +39,17 @@ enum UsageClient {
     static func message(_ error: Error, source: OAuthCredentials.Source) -> String {
         switch error {
         case UsageError.unauthorized where source == .claudeCode:
-            return "O token do Claude Code não vale mais. Abre o Claude Code ou entra nesta barra."
+            return L10n.tr("Claude Code's token is no longer valid. Open Claude Code or sign in here.")
         case UsageError.unauthorized:
-            return "Login recusado. Entra de novo."
+            return L10n.tr("Login refused. Sign in again.")
         case UsageError.http(let code):
-            return "A cota não respondeu (HTTP \(code))."
+            return L10n.tr("The quota didn't respond (HTTP %d).", code)
         case UsageError.decode:
-            return "A resposta da cota veio num formato novo."
+            return L10n.tr("The quota response came in a new format.")
         case UsageError.transport:
-            return "Sem rede para a cota."
+            return L10n.tr("No network for the quota.")
         default:
-            return "Não deu para ler a cota."
+            return L10n.tr("Couldn't read the quota.")
         }
     }
 }

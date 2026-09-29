@@ -41,12 +41,12 @@ enum ProcessProbe {
         let found: [ProcessSnapshot] = text.split(separator: "\n").compactMap { raw in
             let line = String(raw)
             guard let parsed = SessionLogic.parseProcessLine(line),
-                  let harness = SessionLogic.classify(parsed.command)
+                  SessionLogic.classify(parsed.command) != nil
             else { return nil }
             let cwd = workingDirectory(pid: parsed.pid)
             let hasResume = SessionLogic.sessionID(command: parsed.command, openJSONL: []) != nil
-            let jsonl = (harness != .grok && !hasResume) ? openTranscripts(pid: parsed.pid) : []
-            let envModel = harness == .grok ? nil : anthropicModel(pid: parsed.pid)
+            let jsonl = hasResume ? [] : openTranscripts(pid: parsed.pid)
+            let envModel = anthropicModel(pid: parsed.pid)
             return ProcessSnapshot(
                 pid: parsed.pid,
                 elapsed: parsed.elapsed,

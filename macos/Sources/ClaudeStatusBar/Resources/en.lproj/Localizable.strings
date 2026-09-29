@@ -1,0 +1,78 @@
+/* Menu bar */
+"Claude usage" = "Claude usage";
+"5h %1$@, 7d %2$@. %3$d live sessions" = "5h %1$@, 7d %2$@. %3$d live sessions";
+"5 hours %d percent" = "5 hours %d percent";
+"5 hours, no reading" = "5 hours, no reading";
+"7 days %d percent" = "7 days %d percent";
+"7 days, no reading" = "7 days, no reading";
+"%1$@, %2$@, %3$d live sessions" = "%1$@, %2$@, %3$d live sessions";
+"Quit" = "Quit";
+
+/* Panel */
+"Today" = "Today";
+"Open sessions %@" = "Open sessions %@";
+"Account quota not read yet." = "Account quota not read yet.";
+"Live" = "Live";
+"%d working" = "%d working";
+"No %@ session open." = "No %@ session open.";
+"By model" = "By model";
+"No weekly window per model." = "No weekly window per model.";
+"The account does not split quota by model. Below is the local usage of these sessions." = "The account does not split quota by model. Below is the local usage of these sessions.";
+"Open at Login" = "Open at Login";
+"On" = "On";
+"Off" = "Off";
+"this app's login" = "this app's login";
+"%d min" = "%d min";
+"%d h" = "%d h";
+"now" = "now";
+"Extra" = "Extra";
+"active" = "active";
+"Sign in with Claude" = "Sign in with Claude";
+"Sign out" = "Sign out";
+"Click opens the folder. ⌥-click opens it in the terminal." = "Click opens the folder. ⌥-click opens it in the terminal.";
+"working · %@" = "working · %@";
+"idle %1$@ · %2$@" = "idle %1$@ · %2$@";
+"%@ tok" = "%@ tok";
+"%1$@ %2$d percent" = "%1$@ %2$d percent";
+"%@, no reading" = "%@, no reading";
+
+/* Account and login */
+"Approve in System Settings › General › Login Items." = "Approve in System Settings › General › Login Items.";
+"Couldn't change opening at login." = "Couldn't change opening at login.";
+"Couldn't find the executable." = "Couldn't find the executable.";
+"Takes effect at the next login." = "Takes effect at the next login.";
+"Sign in to see the account quota." = "Sign in to see the account quota.";
+"Couldn't exchange the code. Paste the whole code#state." = "Couldn't exchange the code. Paste the whole code#state.";
+"This app's login expired." = "This app's login expired.";
+"Claude Code's token is no longer valid. Open Claude Code or sign in here." = "Claude Code's token is no longer valid. Open Claude Code or sign in here.";
+"Login refused. Sign in again." = "Login refused. Sign in again.";
+"The quota didn't respond (HTTP %d)." = "The quota didn't respond (HTTP %d).";
+"The quota response came in a new format." = "The quota response came in a new format.";
+"No network for the quota." = "No network for the quota.";
+"Couldn't read the quota." = "Couldn't read the quota.";
+
+/* History */
+"All" = "All";
+"30 days" = "30 days";
+"7 days" = "7 days";
+"Overview" = "Overview";
+"Models" = "Models";
+"No history in this period." = "No history in this period.";
+"Less" = "Less";
+"More" = "More";
+"Favorite model" = "Favorite model";
+"Total tokens" = "Total tokens";
+"Sessions" = "Sessions";
+"Longest session" = "Longest session";
+"Active days" = "Active days";
+"Longest streak" = "Longest streak";
+"Most active day" = "Most active day";
+"Current streak" = "Current streak";
+"%d days" = "%d days";
+"Input %1$@ · Output %2$@ · Cache %3$@ read · %4$@ write" = "Input %1$@ · Output %2$@ · Cache %3$@ read · %4$@ write";
+"Tokens per day" = "Tokens per day";
+"Input %1$@ · Output %2$@" = "Input %1$@ · Output %2$@";
+"Cache %1$@ read · %2$@ write" = "Cache %1$@ read · %2$@ write";
+"%@ tokens" = "%@ tokens";
+"no usage" = "no usage";
+"Your input and output add up to ~%1$d× the tokens in %2$@" = "Your input and output add up to ~%1$d× the tokens in %2$@";

@@ -3,9 +3,13 @@ import PackageDescription
 
 let package = Package(
     name: "ClaudeStatusBar",
+    defaultLocalization: "en",
     platforms: [.macOS(.v14)],
     targets: [
-        .executableTarget(name: "ClaudeStatusBar"),
+        .executableTarget(
+            name: "ClaudeStatusBar",
+            resources: [.process("Resources")]
+        ),
         .testTarget(
             name: "ClaudeStatusBarTests",
             dependencies: ["ClaudeStatusBar"],

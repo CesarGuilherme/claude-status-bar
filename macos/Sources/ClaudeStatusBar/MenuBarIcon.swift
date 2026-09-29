@@ -41,19 +41,16 @@ struct MenuBarLabel: View {
         return Threshold.level(worst).color
     }
 
-    private var claudeCount: Int { model.sessions.on(.claude).count }
-    private var grokCount: Int { model.sessions.on(.grok).count }
-
     private var helpText: String {
         let five = percent(model.usage?.fiveHour?.utilization)
         let seven = percent(model.usage?.sevenDay?.utilization)
-        return "5h \(five), 7d \(seven). \(model.sessions.count) sessões ao vivo (\(claudeCount) Claude, \(grokCount) Grok)"
+        return L10n.tr("5h %1$@, 7d %2$@. %3$d live sessions", five, seven, model.sessions.count)
     }
 
     private var accessibilityText: String {
-        let five = model.usage?.fiveHour?.utilization.map { "5 horas \(Int($0.rounded())) por cento" } ?? "5 horas sem leitura"
-        let seven = model.usage?.sevenDay?.utilization.map { "7 dias \(Int($0.rounded())) por cento" } ?? "7 dias sem leitura"
-        return "\(five), \(seven), \(claudeCount) Claude, \(grokCount) Grok"
+        let five = model.usage?.fiveHour?.utilization.map { L10n.tr("5 hours %d percent", Int($0.rounded())) } ?? L10n.tr("5 hours, no reading")
+        let seven = model.usage?.sevenDay?.utilization.map { L10n.tr("7 days %d percent", Int($0.rounded())) } ?? L10n.tr("7 days, no reading")
+        return L10n.tr("%1$@, %2$@, %3$d live sessions", five, seven, model.sessions.count)
     }
 
     private func percent(_ value: Double?) -> String {

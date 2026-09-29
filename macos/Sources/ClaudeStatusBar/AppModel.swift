@@ -19,7 +19,6 @@ final class AppModel {
     var opensAtLogin = false
     var loginNote: String?
     var claudeHistory = HistoryInput()
-    var grokHistory = HistoryInput()
     var todayUSD: Double = 0
 
     private var transcripts: [String: TranscriptState] = [:]
@@ -47,10 +46,10 @@ final class AppModel {
                 // An agent left by an earlier `swift run` build would start a second copy.
                 if enabled, LoginLaunch.isInstalled(home: home) { try? LoginLaunch.remove(home: home) }
                 loginNote = LoginLaunch.appServiceStatus == .requiresApproval
-                    ? "Aprove em Ajustes › Geral › Itens de Início."
+                    ? L10n.tr("Approve in System Settings › General › Login Items.")
                     : nil
             } catch {
-                loginNote = "Não deu para mudar a abertura automática."
+                loginNote = L10n.tr("Couldn't change opening at login.")
             }
             opensAtLogin = LoginLaunch.appServiceStatus == .enabled
             return
@@ -58,12 +57,12 @@ final class AppModel {
         do {
             if enabled {
                 guard let executable = Bundle.main.executableURL?.resolvingSymlinksInPath().path else {
-                    loginNote = "Não achei o executável."
+                    loginNote = L10n.tr("Couldn't find the executable.")
                     opensAtLogin = false
                     return
                 }
                 try LoginLaunch.install(executable: executable, home: home)
-                loginNote = "Entra na próxima sessão."
+                loginNote = L10n.tr("Takes effect at the next login.")
             } else {
                 try LoginLaunch.remove(home: home)
                 LoginLaunch.unloadIfLoaded()
@@ -72,7 +71,7 @@ final class AppModel {
             opensAtLogin = LoginLaunch.isInstalled(home: home)
         } catch {
             opensAtLogin = LoginLaunch.isInstalled(home: home)
-            loginNote = "Não deu para mudar a abertura automática."
+            loginNote = L10n.tr("Couldn't change opening at login.")
         }
     }
 
@@ -98,7 +97,6 @@ final class AppModel {
 
     func refreshSessions() async {
         let home = FileManager.default.homeDirectoryForCurrentUser
-        let grokRoot = home.appendingPathComponent(".grok/sessions")
         let costURL = CostLog.defaultURL
         let rateURL = home.appendingPathComponent(".claude/.usd_brl")
         let previous = transcripts
@@ -114,9 +112,7 @@ final class AppModel {
                 extra: SessionLogic.transcriptPaths(processes: processes)
             )
             let sessions = SessionLogic.attach(
-                SessionLogic.sessions(processes: processes, costs: costs) { cwd in
-                    GrokSessions.load(sessionsRoot: grokRoot, cwd: cwd)
-                },
+                SessionLogic.sessions(processes: processes, costs: costs),
                 transcripts: scanned
             )
             let rateText = try? String(contentsOf: rateURL, encoding: .utf8)
@@ -124,7 +120,6 @@ final class AppModel {
                 sessions,
                 Money.rate(contents: rateText),
                 HistoryLog.claudeInput(cache: cache, transcripts: scanned, costsText: claudeText),
-                HistoryInput(events: HistoryLog.grokEvents(root: grokRoot)),
                 scanned,
                 CostLog.spentUSD(costs, since: Calendar.current.startOfDay(for: Date()))
             )
@@ -132,9 +127,8 @@ final class AppModel {
         sessions = snapshot.0
         brlRate = snapshot.1
         claudeHistory = snapshot.2
-        grokHistory = snapshot.3
-        transcripts = snapshot.4
-        todayUSD = snapshot.5
+        transcripts = snapshot.3
+        todayUSD = snapshot.4
         rebuildRows()
     }
 
@@ -167,7 +161,7 @@ final class AppModel {
 
         authSource = nil
         if status == nil {
-            status = "Entra para ver a cota da conta."
+            status = L10n.tr("Sign in to see the account quota.")
         }
     }
 
@@ -191,7 +185,7 @@ final class AppModel {
             pendingOAuth = nil
             await refreshUsage()
         } catch {
-            status = "Não consegui trocar o código. Cola o code#state inteiro."
+            status = L10n.tr("Couldn't exchange the code. Paste the whole code#state.")
         }
     }
 
@@ -233,11 +227,11 @@ final class AppModel {
     }
 
     private func appLoginFailed() {
-        status = "O login desta barra expirou."
+        status = L10n.tr("This app's login expired.")
     }
 
     private func rebuildRows() {
-        let claudeModels = sessions.on(.claude).map(\.model)
+        let claudeModels = sessions.map(\.model)
         modelRows = ModelMatch.pinLive(usage?.perModelWeekly() ?? [], liveModelIDs: claudeModels)
     }
 

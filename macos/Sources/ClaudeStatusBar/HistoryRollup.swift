@@ -5,9 +5,9 @@ enum HistoryRange: String, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .week: "7 dias"
-        case .month: "30 dias"
-        case .all: "Tudo"
+        case .week: L10n.tr("7 days")
+        case .month: L10n.tr("30 days")
+        case .all: L10n.tr("All")
         }
     }
 }
@@ -241,37 +241,7 @@ enum HistoryLog {
         return input
     }
 
-    static func grokEvents(root: URL, fileManager: FileManager = .default) -> [HistoryEvent] {
-        guard let enumerator = fileManager.enumerator(at: root, includingPropertiesForKeys: nil) else { return [] }
-        var events: [HistoryEvent] = []
-        for case let url as URL in enumerator where url.lastPathComponent == "usage.json" {
-            guard let data = try? Data(contentsOf: url) else { continue }
-            events.append(contentsOf: parseGrok(data))
-        }
-        return events
-    }
-
-    static func parseGrok(_ data: Data) -> [HistoryEvent] {
-        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let sessionID = root["sessionId"] as? String,
-              let turns = root["turns"] as? [[String: Any]]
-        else { return [] }
-        return turns.compactMap { turn in
-            guard let timestamp = parseDate(turn["endedAt"] as? String ?? "") else { return nil }
-            let model = (turn["primaryModelId"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "Grok"
-            return HistoryEvent(
-                timestamp: timestamp,
-                model: model,
-                sessionID: sessionID,
-                input: intValue(turn["inputTokens"]),
-                output: intValue(turn["outputTokens"]),
-                cacheRead: intValue(turn["cachedReadTokens"]),
-                cacheWrite: intValue(turn["cacheCreationTokens"])
-            )
-        }
-    }
-
-    /// Grok writes six fractional digits. Apple's ISO parser stops at three.
+    /// Apple's ISO parser stops at three fractional digits; longer ones are trimmed.
     static func parseDate(_ text: String) -> Date? {
         let normalized = normalizeISO(text)
         let formatter = ISO8601DateFormatter()
@@ -336,7 +306,7 @@ enum HistoryLog {
         var labeledMonths: Set<String> = []
         let monthFormatter = DateFormatter()
         monthFormatter.calendar = calendar
-        monthFormatter.locale = Locale(identifier: "pt_BR")
+        monthFormatter.locale = .current
         monthFormatter.dateFormat = "MMM"
         while cursor <= gridEnd {
             var days: [HistoryCell] = []

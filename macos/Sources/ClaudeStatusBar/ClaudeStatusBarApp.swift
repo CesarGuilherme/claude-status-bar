@@ -56,7 +56,7 @@ final class StatusBarController: NSObject, NSApplicationDelegate {
             host.trailingAnchor.constraint(equalTo: button.trailingAnchor),
             host.centerYAnchor.constraint(equalTo: button.centerYAnchor),
         ])
-        button.setAccessibilityLabel("Uso do Claude e do Grok")
+        button.setAccessibilityLabel(L10n.tr("Claude usage"))
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         button.target = self
         button.action = #selector(statusClick)
@@ -76,10 +76,6 @@ final class StatusBarController: NSObject, NSApplicationDelegate {
             guard let self else { return }
             self.closeStrayWindows()
             Trace.log("launch +0.6 \(Self.describe(button: button, host: host)) windows=\(Self.describeWindows(panel: self.panel))")
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
-            Trace.log("auto toggle")
-            self?.togglePanel()
         }
     }
 
@@ -224,7 +220,7 @@ private final class PassThroughHost<Content: View>: NSHostingView<Content> {
 
 /// Quit is a real menu, available whether or not the user has signed in.
 enum StatusMenus {
-    static let quitTitle = "Encerrar"
+    static var quitTitle: String { L10n.tr("Quit") }
 
     static func quitMenu(target: AnyObject, action: Selector) -> NSMenu {
         let menu = NSMenu(title: "Claude Status Bar")
@@ -241,7 +237,6 @@ enum Dump {
         let processes = ProcessProbe.snapshot()
         let claudeText = (try? String(contentsOf: CostLog.defaultURL, encoding: .utf8)) ?? ""
         let costs = SessionLogic.parseCosts(claudeText)
-        let grokRoot = home.appendingPathComponent(".grok/sessions")
         let cache = StatsCache.load()
         let started = Date()
         let transcripts = TranscriptScan.refresh(
@@ -251,15 +246,14 @@ enum Dump {
         )
         let scanSeconds = Date().timeIntervalSince(started)
         let sessions = SessionLogic.attach(
-            SessionLogic.sessions(processes: processes, costs: costs) { cwd in
-                GrokSessions.load(sessionsRoot: grokRoot, cwd: cwd)
-            },
+            SessionLogic.sessions(processes: processes, costs: costs),
             transcripts: transcripts
         )
         let rateText = try? String(contentsOf: home.appendingPathComponent(".claude/.usd_brl"), encoding: .utf8)
         let rate = Money.rate(contents: rateText)
         let totals = OpenTotals.make(sessions)
 
+        print("language \(L10n.language) region=\(Locale.current.region?.identifier ?? "-") sample=\(L10n.tr("Open at Login")) | \(L10n.tr("Longest streak")) | \(Money.cost(usd: 1, rate: rate)) | \(Money.tokens(7_033_931_207))")
         print("sessions \(sessions.count)")
         for session in sessions {
             let cost = session.costUSD.map { String(format: "usd=%.4f", $0) } ?? "usd=-"
@@ -268,20 +262,17 @@ enum Dump {
             let idle = session.lastActivity.map { "idle=\(Int(Date().timeIntervalSince($0)))s" } ?? "idle=-"
             print("- \(session.harness.title) model=\(session.model) project=\(session.project) elapsed=\(session.elapsed) \(cost) \(tokens) \(context) \(idle) working=\(session.isWorking())")
         }
-        print("totals sessions=\(totals.sessions) claude_usd=\(String(format: "%.4f", totals.claudeUSD)) grok_tokens=\(totals.grokTokens) brl_rate=\(String(format: "%.2f", rate)) claude_brl=\(Money.brl(usd: totals.claudeUSD, rate: rate)) today_brl=\(Money.brl(usd: CostLog.spentUSD(costs, since: Calendar.current.startOfDay(for: Date())), rate: rate))")
+        print("totals sessions=\(totals.sessions) claude_usd=\(String(format: "%.4f", totals.claudeUSD)) brl_rate=\(String(format: "%.2f", rate)) claude_brl=\(Money.cost(usd: totals.claudeUSD, rate: rate)) today_brl=\(Money.cost(usd: CostLog.spentUSD(costs, since: Calendar.current.startOfDay(for: Date())), rate: rate))")
         print("transcripts scanned=\(transcripts.count) seconds=\(String(format: "%.2f", scanSeconds)) cache=\(cache != nil) cutoff=\(cache?.cutoff().formatted(date: .numeric, time: .omitted) ?? "-")")
         let claudeInput = HistoryLog.claudeInput(cache: cache, transcripts: transcripts, costsText: claudeText)
-        let grokInput = HistoryInput(events: HistoryLog.grokEvents(root: grokRoot))
         let now = Date()
-        for (name, input) in [("claude", claudeInput), ("grok", grokInput)] {
-            for range in HistoryRange.allCases {
-                let snap = HistoryLog.snapshot(input: input, range: range, now: now)
-                let busiest = snap.busiestDay?.formatted(.dateTime.day().month(.abbreviated)) ?? "-"
-                print("history \(name) \(range.rawValue) tokens=\(Money.tokens(snap.totalTokens)) sessions=\(snap.sessions) active=\(snap.activeDays)/\(snap.spanDays) favorite=\(ModelMatch.displayName(snap.favoriteModel)) busiest=\(busiest) longest=\(HistoryLog.duration(snap.longestSession)) streak=\(snap.currentStreak)/\(snap.longestStreak) split=\(snap.splitKnown)")
-                if range == .all {
-                    for share in snap.shares {
-                        print("  model \(ModelMatch.displayName(share.model)) \(String(format: "%.1f%%", share.percent)) in=\(Money.tokens(share.input)) out=\(Money.tokens(share.output)) cache_read=\(Money.tokens(share.cacheRead)) cache_write=\(Money.tokens(share.cacheWrite))")
-                    }
+        for range in HistoryRange.allCases {
+            let snap = HistoryLog.snapshot(input: claudeInput, range: range, now: now)
+            let busiest = snap.busiestDay?.formatted(.dateTime.day().month(.abbreviated)) ?? "-"
+            print("history \(range.rawValue) tokens=\(Money.tokens(snap.totalTokens)) sessions=\(snap.sessions) active=\(snap.activeDays)/\(snap.spanDays) favorite=\(ModelMatch.displayName(snap.favoriteModel)) busiest=\(busiest) longest=\(HistoryLog.duration(snap.longestSession)) streak=\(snap.currentStreak)/\(snap.longestStreak) split=\(snap.splitKnown)")
+            if range == .all {
+                for share in snap.shares {
+                    print("  model \(ModelMatch.displayName(share.model)) \(String(format: "%.1f%%", share.percent)) in=\(Money.tokens(share.input)) out=\(Money.tokens(share.output)) cache_read=\(Money.tokens(share.cacheRead)) cache_write=\(Money.tokens(share.cacheWrite))")
                 }
             }
         }

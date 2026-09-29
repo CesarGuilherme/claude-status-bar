@@ -87,17 +87,6 @@ enum Threshold {
     enum Level: Sendable { case green, amber, red }
 }
 
-/// Grok's `costUsdTicks` stays out of reais until the divisor is confirmed
-/// against a number the TUI already shows.
-enum GrokCost {
-    static let usdDivisor: Double? = nil
-
-    static func usd(ticks: Int) -> Double? {
-        guard let usdDivisor, usdDivisor > 0 else { return nil }
-        return Double(ticks) / usdDivisor
-    }
-}
-
 enum Money {
     static let fallbackBRL = 5.40
 
@@ -108,40 +97,22 @@ enum Money {
         return value
     }
 
-    static func brl(usd: Double, rate: Double) -> String {
-        let formatter = NumberFormatter()
-        formatter.locale = Locale(identifier: "pt_BR")
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "BRL"
-        formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 2
-        return formatter.string(from: NSNumber(value: usd * rate)) ?? String(format: "R$ %.2f", usd * rate)
+    /// Costs come in USD. In Brazil they show in reais at the cached rate;
+    /// anywhere else they stay in dollars. Separators follow the locale.
+    static func cost(usd: Double, rate: Double, locale: Locale = .current) -> String {
+        if locale.region == .brazil {
+            return (usd * rate).formatted(.currency(code: "BRL").locale(locale))
+        }
+        return self.usd(usd, locale: locale)
     }
 
-    static func usd(_ amount: Double) -> String {
-        let formatter = NumberFormatter()
-        formatter.locale = Locale(identifier: "pt_BR")
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "USD"
-        formatter.minimumFractionDigits = 2
-        formatter.maximumFractionDigits = 2
-        return formatter.string(from: NSNumber(value: amount)) ?? String(format: "US$ %.2f", amount)
+    static func usd(_ amount: Double, locale: Locale = .current) -> String {
+        amount.formatted(.currency(code: "USD").locale(locale))
     }
 
-    static func tokens(_ count: Int) -> String {
-        let formatter = NumberFormatter()
-        formatter.locale = Locale(identifier: "pt_BR")
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 1
-        formatter.minimumFractionDigits = count >= 1_000_000 ? 1 : 0
-        if count >= 1_000_000_000 {
-            let text = formatter.string(from: NSNumber(value: Double(count) / 1_000_000_000)) ?? "\(count)"
-            return "\(text) bi"
-        }
-        if count >= 1_000_000 {
-            let text = formatter.string(from: NSNumber(value: Double(count) / 1_000_000)) ?? "\(count)"
-            return "\(text) mi"
-        }
-        return formatter.string(from: NSNumber(value: count)) ?? "\(count)"
+    /// "7,0 bi", "7.0B", "7,0 Md": the locale's own abbreviations.
+    static func tokens(_ count: Int, locale: Locale = .current) -> String {
+        let digits = count >= 1_000_000 ? 1...1 : 0...1
+        return count.formatted(.number.notation(.compactName).precision(.fractionLength(digits)).locale(locale))
     }
 }
