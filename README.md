@@ -8,7 +8,7 @@ A macOS menu bar app that shows your Claude usage at a glance: account quota, li
   <sub>Screenshots use made-up data.</sub>
 </p>
 
-The interface follows the macOS language: English, Portuguese (Brazil), Spanish, French or German, with English for any other language. Costs show in reais when the system region is Brazil (converted at the cached USD→BRL rate) and in US dollars everywhere else; numbers and dates follow the system format.
+The interface follows the macOS language: English, Portuguese (Brazil), Spanish, French or German, with English for any other language. Costs show in the currency of the macOS region (euro in France, Germany or Spain, reais in Brazil, and so on). Anthropic bills in US dollars and your bank converts at its own rate, so converted amounts are market-rate estimates and carry a `≈`; in the US, or when no rate is available, costs stay in exact dollars. Numbers and dates follow the system format.
 
 ## What it shows
 
@@ -40,7 +40,8 @@ Everything is read locally except the quota:
 | `~/.claude/projects/**/*.jsonl` | Today's history and live session context, tokens and activity |
 | `~/.claude/metrics/costs.jsonl` | Session cost and today's spend (written by the ECC cost-tracker hook) |
 | `ps` / `lsof` | Which Claude Code sessions are running |
-| `~/.claude/.usd_brl` | USD → BRL rate when the region is Brazil (fallback 5.40) |
+| `open.er-api.com` | USD exchange rates, downloaded at most once a day and cached in `~/Library/Caches/com.cesar.claude-status-bar/` |
+| `~/.claude/.usd_brl` | USD → BRL rate the terminal statusline caches; used first for reais so both show the same amount |
 
 For the quota, the app uses its own sign-in (browser OAuth, you paste the `code#state`) or reads Claude Code's token from the Keychain item `Claude Code-credentials`. It only reads that item and never refreshes it, so Claude Code stays logged in.
 

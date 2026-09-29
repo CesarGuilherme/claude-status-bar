@@ -59,23 +59,42 @@ struct ModelMatchTests {
         }
         #expect(ModelMatch.hottestLivePercent(ModelMatch.pinLive(rows, liveModelIDs: ["claude-opus-5-5"])) == 90)
     }
-    @Test func moneyUsesCachedRateAndBrazilianReais() {
-        #expect(Money.rate(contents: nil) == 5.40)
-        #expect(Money.rate(contents: " 5.71 \n") == 5.71)
-        #expect(Money.rate(contents: "nope") == 5.40)
+    @Test func costsUseTheRegionCurrencyAsAnEstimate() {
+        let rates = ["EUR": 0.88, "BRL": 5.21, "GBP": 0.75]
         let brazil = Locale(identifier: "pt_BR")
-        let label = Money.cost(usd: 2, rate: 5.40, locale: brazil)
-        #expect(label.contains("10,80"))
-        #expect(label.contains("R$"))
+        // Reais take the terminal statusline's cached rate first, then the downloaded one.
+        #expect(Exchange.current(locale: brazil, brlText: " 5.19 \n", rates: rates) == Exchange(currency: "BRL", rate: 5.19))
+        #expect(Exchange.current(locale: brazil, brlText: "nope", rates: rates) == Exchange(currency: "BRL", rate: 5.21))
+        #expect(Exchange.current(locale: brazil, brlText: nil, rates: [:]) == Exchange(currency: "BRL", rate: 5.40))
+        let germany = Locale(identifier: "de_DE")
+        let euro = Exchange.current(locale: germany, brlText: nil, rates: rates)
+        #expect(euro == Exchange(currency: "EUR", rate: 0.88))
+        #expect(Money.cost(usd: 10, exchange: euro, locale: germany) == "≈\u{a0}8,80\u{a0}€")
+        let label = Money.cost(usd: 2, exchange: Exchange(currency: "BRL", rate: 5.40), locale: brazil)
+        #expect(label.hasPrefix("≈") && label.contains("R$") && label.contains("10,80"))
         #expect(Money.tokens(12_926_641, locale: brazil) == "12,9\u{a0}mi")
     }
 
-    @Test func outsideBrazilCostsStayInDollars() {
+    @Test func dollarsStayExactAndUnknownCurrenciesFallBackToThem() {
         let us = Locale(identifier: "en_US")
-        #expect(Money.cost(usd: 2, rate: 5.40, locale: us) == "$2.00")
-        #expect(Money.cost(usd: 2, rate: 5.40, locale: Locale(identifier: "pt_PT")).contains("US$"))
+        #expect(Exchange.current(locale: us, brlText: "5.19", rates: ["EUR": 0.88]) == .usd)
+        #expect(Exchange.current(locale: Locale(identifier: "ja_JP"), brlText: nil, rates: ["EUR": 0.88]) == .usd)
+        #expect(Money.cost(usd: 2, exchange: .usd, locale: us) == "$2.00")
         #expect(Money.tokens(7_033_931_207, locale: us) == "7.0B")
         #expect(Money.tokens(19_700, locale: us) == "19.7K")
+    }
+
+    @Test func ratesParseOnlyAGoodAnswer() throws {
+        let good = #"{"result":"success","rates":{"USD":1,"EUR":0.879241,"JPY":157.3}}"#
+        #expect(ExchangeRates.parse(Data(good.utf8))?["EUR"] == 0.879241)
+        #expect(ExchangeRates.parse(Data(#"{"result":"error","error-type":"quota"}"#.utf8)) == nil)
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("rates-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: file) }
+        #expect(ExchangeRates.isStale(url: file))
+        try Data(good.utf8).write(to: file)
+        #expect(!ExchangeRates.isStale(url: file))
+        #expect(ExchangeRates.isStale(url: file, now: Date().addingTimeInterval(2 * 86_400)))
+        #expect(ExchangeRates.load(url: file)["JPY"] == 157.3)
     }
 
     @Test func resetClockUsesTheGivenTimeZone() {

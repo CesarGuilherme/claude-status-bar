@@ -88,22 +88,12 @@ enum Threshold {
 }
 
 enum Money {
-    static let fallbackBRL = 5.40
-
-    static func rate(contents: String?) -> Double {
-        guard let contents else { return fallbackBRL }
-        let value = Double(contents.trimmingCharacters(in: .whitespacesAndNewlines))
-        guard let value, value > 0, value < 100 else { return fallbackBRL }
-        return value
-    }
-
-    /// Costs come in USD. In Brazil they show in reais at the cached rate;
-    /// anywhere else they stay in dollars. Separators follow the locale.
-    static func cost(usd: Double, rate: Double, locale: Locale = .current) -> String {
-        if locale.region == .brazil {
-            return (usd * rate).formatted(.currency(code: "BRL").locale(locale))
-        }
-        return self.usd(usd, locale: locale)
+    /// Costs come in USD, the currency Anthropic bills in. Converted to the
+    /// region's currency they are an estimate at market rate (the card's bank
+    /// uses its own), so they carry a "≈". Separators follow the locale.
+    static func cost(usd: Double, exchange: Exchange, locale: Locale = .current) -> String {
+        guard exchange.currency != "USD" else { return self.usd(usd, locale: locale) }
+        return "≈\u{a0}" + (usd * exchange.rate).formatted(.currency(code: exchange.currency).locale(locale))
     }
 
     static func usd(_ amount: Double, locale: Locale = .current) -> String {

@@ -8,7 +8,8 @@ final class AppModel {
     var sessions: [LiveSession] = []
     var usage: UsageResponse?
     var modelRows: [PerModelUsage] = []
-    var brlRate: Double = Money.fallbackBRL
+    /// Currency costs show in: the region's, or USD when there is no rate.
+    var exchange: Exchange = .usd
     var lastUpdated: Date?
     var status: String?
     var pollingMinutes: Int = 5
@@ -115,17 +116,17 @@ final class AppModel {
                 SessionLogic.sessions(processes: processes, costs: costs),
                 transcripts: scanned
             )
-            let rateText = try? String(contentsOf: rateURL, encoding: .utf8)
+            let brlText = try? String(contentsOf: rateURL, encoding: .utf8)
             return (
                 sessions,
-                Money.rate(contents: rateText),
+                Exchange.current(brlText: brlText, rates: ExchangeRates.load()),
                 HistoryLog.claudeInput(cache: cache, transcripts: scanned, costsText: claudeText),
                 scanned,
                 CostLog.spentUSD(costs, since: Calendar.current.startOfDay(for: Date()))
             )
         }.value
         sessions = snapshot.0
-        brlRate = snapshot.1
+        exchange = snapshot.1
         claudeHistory = snapshot.2
         transcripts = snapshot.3
         todayUSD = snapshot.4
@@ -241,6 +242,8 @@ final class AppModel {
         usageLoop = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
+                // At most one download a day; the sessions loop picks the rates up.
+                await ExchangeRates.refreshIfStale()
                 await self.refreshUsage()
                 try? await Task.sleep(nanoseconds: interval)
             }

@@ -249,11 +249,12 @@ enum Dump {
             SessionLogic.sessions(processes: processes, costs: costs),
             transcripts: transcripts
         )
-        let rateText = try? String(contentsOf: home.appendingPathComponent(".claude/.usd_brl"), encoding: .utf8)
-        let rate = Money.rate(contents: rateText)
+        await ExchangeRates.refreshIfStale()
+        let brlText = try? String(contentsOf: home.appendingPathComponent(".claude/.usd_brl"), encoding: .utf8)
+        let exchange = Exchange.current(brlText: brlText, rates: ExchangeRates.load())
         let totals = OpenTotals.make(sessions)
 
-        print("language \(L10n.language) region=\(Locale.current.region?.identifier ?? "-") sample=\(L10n.tr("Open at Login")) | \(L10n.tr("Longest streak")) | \(Money.cost(usd: 1, rate: rate)) | \(Money.tokens(7_033_931_207))")
+        print("language \(L10n.language) region=\(Locale.current.region?.identifier ?? "-") sample=\(L10n.tr("Open at Login")) | \(L10n.tr("Longest streak")) | \(Money.cost(usd: 1, exchange: exchange)) | \(Money.tokens(7_033_931_207))")
         print("sessions \(sessions.count)")
         for session in sessions {
             let cost = session.costUSD.map { String(format: "usd=%.4f", $0) } ?? "usd=-"
@@ -262,7 +263,7 @@ enum Dump {
             let idle = session.lastActivity.map { "idle=\(Int(Date().timeIntervalSince($0)))s" } ?? "idle=-"
             print("- \(session.harness.title) model=\(session.model) project=\(session.project) elapsed=\(session.elapsed) \(cost) \(tokens) \(context) \(idle) working=\(session.isWorking())")
         }
-        print("totals sessions=\(totals.sessions) claude_usd=\(String(format: "%.4f", totals.claudeUSD)) brl_rate=\(String(format: "%.2f", rate)) claude_brl=\(Money.cost(usd: totals.claudeUSD, rate: rate)) today_brl=\(Money.cost(usd: CostLog.spentUSD(costs, since: Calendar.current.startOfDay(for: Date())), rate: rate))")
+        print("totals sessions=\(totals.sessions) claude_usd=\(String(format: "%.4f", totals.claudeUSD)) currency=\(exchange.currency) rate=\(String(format: "%.4f", exchange.rate)) open=\(Money.cost(usd: totals.claudeUSD, exchange: exchange)) today=\(Money.cost(usd: CostLog.spentUSD(costs, since: Calendar.current.startOfDay(for: Date())), exchange: exchange))")
         print("transcripts scanned=\(transcripts.count) seconds=\(String(format: "%.2f", scanSeconds)) cache=\(cache != nil) cutoff=\(cache?.cutoff().formatted(date: .numeric, time: .omitted) ?? "-")")
         let claudeInput = HistoryLog.claudeInput(cache: cache, transcripts: transcripts, costsText: claudeText)
         let now = Date()

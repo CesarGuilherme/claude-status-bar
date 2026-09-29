@@ -54,11 +54,11 @@ struct PopoverView: View {
                     Spacer()
                     VStack(alignment: .trailing, spacing: 2) {
                         SectionLabel(text: L10n.tr("Today"))
-                        Text(Money.cost(usd: model.todayUSD, rate: model.brlRate))
+                        Text(Money.cost(usd: model.todayUSD, exchange: model.exchange))
                             .font(.title2.weight(.semibold))
                             .monospacedDigit()
                             .contentTransition(.numericText())
-                        Text(L10n.tr("Open sessions %@", Money.cost(usd: shownTotals.claudeUSD, rate: model.brlRate)))
+                        Text(L10n.tr("Open sessions %@", Money.cost(usd: shownTotals.claudeUSD, exchange: model.exchange)))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
@@ -75,7 +75,7 @@ struct PopoverView: View {
                 HStack {
                     SectionLabel(text: L10n.tr("Today"))
                     Spacer()
-                    Text(Money.cost(usd: model.todayUSD, rate: model.brlRate))
+                    Text(Money.cost(usd: model.todayUSD, exchange: model.exchange))
                         .monospacedDigit()
                 }
                 signIn
@@ -102,7 +102,7 @@ struct PopoverView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(shown) { session in
-                    SessionCard(session: session, rate: model.brlRate)
+                    SessionCard(session: session, exchange: model.exchange)
                     if session.id != shown.last?.id {
                         Divider().opacity(0.4)
                     }
@@ -157,7 +157,7 @@ struct PopoverView: View {
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                     if row.costUSD > 0 {
-                        Text(Money.cost(usd: row.costUSD, rate: model.brlRate))
+                        Text(Money.cost(usd: row.costUSD, exchange: model.exchange))
                             .monospacedDigit()
                     }
                     if row.tokens > 0 {
@@ -344,7 +344,7 @@ private struct ModuleToggleStyle: ToggleStyle {
 /// the project folder; Option-click opens it in the terminal.
 private struct SessionCard: View {
     var session: LiveSession
-    var rate: Double
+    var exchange: Exchange
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 5)) { context in
@@ -367,7 +367,7 @@ private struct SessionCard: View {
                     }
                     Spacer(minLength: 6)
                     if let cost = session.costUSD {
-                        Text(Money.cost(usd: cost, rate: rate))
+                        Text(Money.cost(usd: cost, exchange: exchange))
                             .font(.callout.monospacedDigit())
                             .contentTransition(.numericText())
                     } else if let tokens = session.tokens {
