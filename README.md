@@ -1,0 +1,67 @@
+# Claude Status Bar
+
+A macOS menu bar app that shows your Claude (and Grok) usage at a glance: account quota, live sessions, spend in BRL and a history that matches Claude Code's `/stats`. Built with SwiftUI and Liquid Glass.
+
+<p align="center">
+  <img src="docs/menubar.png" alt="Menu bar icon with 5h and 7d quota meters" height="52"><br><br>
+  <img src="docs/panel.png" alt="The panel: quota rings, live sessions, per-model usage and history" width="352">
+</p>
+
+The interface is in Brazilian Portuguese.
+
+## What it shows
+
+- **Menu bar**: the Claude mark with two meters for the 5-hour and 7-day quota windows. A green dot pulses while a session is working, and the mark turns amber or red as quota runs out (same bands as the terminal statusline: 70% and 90%).
+- **Quota**: 5h and 7d rings with the reset time, per-model weekly limits when the account reports them, and extra usage.
+- **Today**: what you spent today in reais, and what the open sessions cost.
+- **Live sessions**: every running Claude Code, Xcode agent or Grok session, with model, project, context-window use, working or idle state, tokens and cost. Click a session to open its folder; Option-click opens it in the terminal.
+- **History**, like `/stats`:
+  - *Visão geral*: activity heatmap, favorite model, total tokens, sessions, longest session, active days, streaks and busiest day.
+  - *Modelos*: tokens per day by model, with hover, and each model's share with its input, output and cache split.
+- **Open at login** and **Quit** buttons in the panel; right-click the icon for Quit as well.
+
+## Where the numbers come from
+
+Everything is read locally except the quota:
+
+| Source | Used for |
+|---|---|
+| `api.anthropic.com/api/oauth/usage` | 5h/7d quota, per-model limits, extra usage |
+| `~/.claude/stats-cache.json` | History up to its last computed day (the file `/stats` reads) |
+| `~/.claude/projects/**/*.jsonl` | Today's history and live session context, tokens and activity |
+| `~/.claude/metrics/costs.jsonl` | Session cost and today's spend (written by the ECC cost-tracker hook) |
+| `ps` / `lsof` | Which sessions are running |
+| `~/.grok/sessions` | Grok sessions and tokens |
+| `~/.claude/.usd_brl` | USD → BRL rate (fallback 5.40) |
+
+For the quota, the app uses its own sign-in (browser OAuth, you paste the `code#state`) or reads Claude Code's token from the Keychain item `Claude Code-credentials`. It only reads that item and never refreshes it, so Claude Code stays logged in.
+
+## Requirements
+
+- macOS 14 or later. Liquid Glass needs macOS 26; earlier versions get a material background.
+- Swift 6 toolchain (Xcode 16 or the command-line tools).
+
+## Build and install
+
+```sh
+make install   # builds macos/build/ClaudeStatusBar.app, copies it to /Applications and opens it
+make app       # build the .app only
+make test      # run the test suite
+make dump      # print sessions, history and quota to the terminal, no UI
+```
+
+The build signs the app with your first "Apple Development" certificate, or ad-hoc when there is none. A stable signature keeps the Keychain "Always Allow" across rebuilds.
+
+For development, from `macos/`:
+
+```sh
+swift build
+swift run ClaudeStatusBar          # runs without the .app bundle
+swift test --filter <testName>     # a single test
+```
+
+The running app logs to `/tmp/claude-status-bar.log`.
+
+## Credits
+
+Claude icon from [theSVG](https://thesvg.org/icon/claude), released under CC0. Claude is a trademark of Anthropic; this is an unofficial, personal project.
