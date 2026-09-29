@@ -70,21 +70,21 @@ enum ModelMatch {
 }
 
 enum Threshold {
-    /// Same bands as the terminal statusline: green under 70, amber under 90, red at 90+.
+    /// Same bands as the terminal statusline: green under 70, yellow under 90, red at 90+.
     static func level(_ percent: Double) -> Level {
         if percent < 70 { return .green }
-        if percent < 90 { return .amber }
+        if percent < 90 { return .yellow }
         return .red
     }
 
-    /// The statusline's context pill: green under 55, amber under 75, red at 75+.
+    /// The statusline's context pill: green under 55, yellow under 75, red at 75+.
     static func contextLevel(_ percent: Double) -> Level {
         if percent < 55 { return .green }
-        if percent < 75 { return .amber }
+        if percent < 75 { return .yellow }
         return .red
     }
 
-    enum Level: Sendable { case green, amber, red }
+    enum Level: Sendable { case green, yellow, red }
 }
 
 enum Money {

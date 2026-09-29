@@ -4,14 +4,23 @@ A macOS menu bar app that shows your Claude usage at a glance: account quota, li
 
 <p align="center">
   <img src="docs/menubar.png" alt="Menu bar icon with 5h and 7d quota meters" height="52"><br><br>
-  <img src="docs/panel.png" alt="The panel: quota rings, live sessions, per-model usage and history" width="352">
+  <img src="docs/panel.png" alt="The panel: quota rings, live sessions, per-model usage and history" width="352"><br>
+  <sub>Screenshots use made-up data.</sub>
 </p>
 
 The interface follows the macOS language: English, Portuguese (Brazil), Spanish, French or German, with English for any other language. Costs show in reais when the system region is Brazil (converted at the cached USD→BRL rate) and in US dollars everywhere else; numbers and dates follow the system format.
 
 ## What it shows
 
-- **Menu bar**: the Claude mark with two meters for the 5-hour and 7-day quota windows. A green dot pulses while a session is working, and the mark turns amber or red as quota runs out (same bands as the terminal statusline: 70% and 90%).
+- **Menu bar**: the Claude mark with two meters for the 5-hour and 7-day quota windows. A green dot pulses while a session is working.
+- **Colors as quota runs out**, the same bands as the terminal statusline, used by the menu bar meters and the panel's rings (the Claude mark stays white while all is green, then turns yellow or red too):
+
+  | Usage | Color |
+  |---|---|
+  | below 70% | green |
+  | 70–89% | yellow |
+  | 90–100% | red |
+
 - **Quota**: 5h and 7d rings with the reset time, per-model weekly limits when the account reports them, and extra usage.
 - **Today**: what you spent today, and what the open sessions cost.
 - **Live sessions**: every running Claude Code session, in the terminal or inside Xcode, with model, project, running time, context-window use, working or idle state, tokens and cost. Click a session to open its folder; Option-click opens it in the terminal.

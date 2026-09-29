@@ -59,11 +59,11 @@ struct MenuBarLabel: View {
 }
 
 /// The Claude mark (theSVG, CC0) as a template image, so it takes the menu
-/// bar's color. The .app carries `claude.svg`; `swift run` has no bundle and
-/// shows the asterisk instead.
+/// bar's color. It ships in the module's resources; the asterisk is only a
+/// fallback if that file is missing.
 struct ClaudeMark: View {
     private static let image: NSImage? = {
-        guard let url = Bundle.main.url(forResource: "claude", withExtension: "svg"),
+        guard let url = Bundle.module.url(forResource: "claude", withExtension: "svg"),
               let image = NSImage(contentsOf: url) else { return nil }
         image.isTemplate = true
         return image
@@ -96,6 +96,8 @@ private struct MiniMeter: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(.primary.opacity(0.28))
                 if let percent {
+                    // One color per band, the terminal statusline's: green under
+                    // 70%, yellow under 90%, red from 90% up to 100%.
                     Capsule()
                         .fill(Threshold.level(percent).color.gradient)
                         .frame(width: max(3.5, 26 * CGFloat(min(max(percent, 0), 100)) / 100))
@@ -112,7 +114,7 @@ extension Threshold.Level {
     var color: Color {
         switch self {
         case .green: Color(red: 0.36, green: 0.72, blue: 0.42)
-        case .amber: Color(red: 0.86, green: 0.62, blue: 0.18)
+        case .yellow: Color(red: 0.96, green: 0.80, blue: 0.20)
         case .red: Color(red: 0.86, green: 0.32, blue: 0.34)
         }
     }

@@ -421,7 +421,7 @@ private struct SessionCard: View {
     }
 }
 
-/// Context use with the statusline's context bands (amber at 55, red at 75).
+/// Context use with the statusline's context bands (yellow at 55, red at 75).
 private struct ContextBar: View {
     var percent: Double
     var tokens: Int?
