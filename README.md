@@ -71,6 +71,14 @@ swift test --filter <testName>     # a single test
 
 The running app logs to `/tmp/claude-status-bar.log`.
 
+## Disclaimer
+
+This is an unofficial, personal project, not affiliated with or endorsed by Anthropic. The quota comes from an undocumented endpoint (`api/oauth/usage`) through the same OAuth client Claude Code uses, so it can stop working whenever Anthropic changes it. Costs are estimates; your Anthropic invoice is what counts.
+
 ## Credits
 
-Claude icon from [theSVG](https://thesvg.org/icon/claude), released under CC0. Claude is a trademark of Anthropic; this is an unofficial, personal project.
+Claude icon from [theSVG](https://thesvg.org/icon/claude), released under CC0. Claude and the Claude logo are trademarks of Anthropic and are not covered by this project's license.
+
+## License
+
+[MIT](LICENSE) © 2026 César Guilherme Lana Nonato
