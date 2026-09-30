@@ -7,6 +7,16 @@ enum UsageError: Error, Equatable {
     case decode
     case transport
     case oauth(String)
+
+    /// The token endpoint turned the refresh token down, so signing in again is
+    /// the only way out. Anything else (no network right after boot, 429, 5xx)
+    /// keeps the stored login and is retried on the next poll.
+    var rejectsLogin: Bool {
+        switch self {
+        case .unauthorized, .http(400), .http(401), .http(403): true
+        default: false
+        }
+    }
 }
 
 enum UsageClient {

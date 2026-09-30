@@ -142,8 +142,8 @@ final class AppModel {
                 do {
                     app = try await OAuthFlow.refresh(app)
                     try CredentialStore.saveApp(app)
-                } catch UsageError.transport {
-                    status = UsageClient.message(UsageError.transport, source: .app)
+                } catch let error as UsageError where !error.rejectsLogin {
+                    status = UsageClient.message(error, source: .app)
                     return
                 } catch {
                     CredentialStore.deleteApp()
@@ -264,6 +264,8 @@ final class AppModel {
                 lastUpdated = Date()
                 status = nil
                 rebuildRows()
+            } catch let error as UsageError where !error.rejectsLogin {
+                status = UsageClient.message(error, source: .app)
             } catch {
                 CredentialStore.deleteApp()
                 status = UsageClient.message(error, source: .app)

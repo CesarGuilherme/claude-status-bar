@@ -568,4 +568,14 @@ struct PopoverSmokeTests {
         #expect(size.height > 12)
         #expect(size.height < 36)
     }
+
+    @Test func onlyARejectedRefreshSignsOut() {
+        #expect(UsageError.http(400).rejectsLogin)
+        #expect(UsageError.http(401).rejectsLogin)
+        #expect(UsageError.unauthorized.rejectsLogin)
+        #expect(!UsageError.transport.rejectsLogin)
+        #expect(!UsageError.http(429).rejectsLogin)
+        #expect(!UsageError.http(503).rejectsLogin)
+        #expect(!UsageError.decode.rejectsLogin)
+    }
 }
