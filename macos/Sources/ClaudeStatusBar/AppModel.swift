@@ -30,6 +30,9 @@ final class AppModel {
     private var loopsStarted = false
     private var sessionLoop: Task<Void, Never>?
     private var usageLoop: Task<Void, Never>?
+    /// The last quota attempt failed for a transient reason (e.g. no network
+    /// right after boot): the loop retries in seconds, not minutes.
+    private var retrySoon = false
 
     var totals: OpenTotals { OpenTotals.make(sessions) }
 
@@ -143,7 +146,10 @@ final class AppModel {
                     app = try await OAuthFlow.refresh(app)
                     try CredentialStore.saveApp(app)
                 } catch let error as UsageError where !error.rejectsLogin {
+                    // Still signed in; only the server was out of reach.
+                    authSource = .app
                     status = UsageClient.message(error, source: .app)
+                    retrySoon = true
                     return
                 } catch {
                     CredentialStore.deleteApp()
@@ -252,6 +258,7 @@ final class AppModel {
             let response = try await UsageClient.fetch(credentials)
             usage = response
             authSource = credentials.source
+            retrySoon = false
             lastUpdated = Date()
             status = nil
             rebuildRows()
@@ -263,15 +270,22 @@ final class AppModel {
                 authSource = .app
                 lastUpdated = Date()
                 status = nil
+                retrySoon = false
                 rebuildRows()
             } catch let error as UsageError where !error.rejectsLogin {
+                authSource = .app
                 status = UsageClient.message(error, source: .app)
+                retrySoon = true
             } catch {
                 CredentialStore.deleteApp()
                 status = UsageClient.message(error, source: .app)
                 authSource = nil
             }
         } catch {
+            if let error = error as? UsageError, !error.rejectsLogin {
+                authSource = credentials.source
+                retrySoon = true
+            }
             status = UsageClient.message(error, source: credentials.source)
         }
     }
@@ -294,7 +308,7 @@ final class AppModel {
                 // At most one download a day; the sessions loop picks the rates up.
                 await ExchangeRates.refreshIfStale()
                 await self.refreshUsage()
-                try? await Task.sleep(nanoseconds: interval)
+                try? await Task.sleep(nanoseconds: self.retrySoon ? 30_000_000_000 : interval)
             }
         }
     }
